@@ -27,16 +27,14 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.19.19)
 
-  packages/cli:
-    dependencies:
-      docparse:
-        specifier: workspace:*
-        version: link:../docparse
-
   packages/core: {}
 
   packages/docparse:
     dependencies:
+      pdfjs-dist:
+        specifier: ^4.10.38
+        version: 4.10.38
+    devDependencies:
       '@docparse/core':
         specifier: workspace:*
         version: link:../core

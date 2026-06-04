@@ -2,6 +2,9 @@
 
 **Layout-aware document parsing for RAG. TypeScript-native. No Python, no servers.**
 
+> Published on npm as **[`docparse-ts`](https://www.npmjs.com/package/docparse-ts)**
+> (the unscoped `docparse` name was already taken). `import { parseDocument } from "docparse-ts"`.
+
 `docparse` turns a PDF into clean **Markdown**, a structured **JSON** content
 tree, and **RAG-ready chunks** — reconstructing reading order, multi-column
 flow, headings, lists and tables instead of dumping raw positioned text.
@@ -27,14 +30,14 @@ Python. `docparse` aims to bring layout-aware parsing to the JS/TS ecosystem.
 ## Install
 
 ```bash
-npm install docparse
-# or: pnpm add docparse / yarn add docparse
+npm install docparse-ts
+# or: pnpm add docparse-ts / yarn add docparse-ts
 ```
 
 ## Quickstart
 
 ```ts
-import { parseDocument } from "docparse";
+import { parseDocument } from "docparse-ts";
 import { readFile } from "node:fs/promises";
 
 const doc = await parseDocument(new Uint8Array(await readFile("report.pdf")));
@@ -68,11 +71,11 @@ const chunks = doc.chunks({ maxTokens: 512, overlap: 64 });
 ### CLI
 
 ```bash
-npx docparse report.pdf -o report.md --json report.json --chunks chunks.json
+npx docparse-ts report.pdf -o report.md --json report.json --chunks chunks.json
 ```
 
 ```
-docparse <file.pdf> [options]
+docparse-ts <file.pdf> [options]
   -o, --out <file>       Write Markdown to <file> (default: stdout)
       --json <file>      Write the JSON content tree
       --chunks <file>    Write RAG chunks (JSON)
@@ -108,15 +111,18 @@ citations and traceability.
 
 ## Packages
 
-| Package | Purpose | License |
-| --- | --- | --- |
-| `docparse` | Main entry — `parseDocument()` | AGPL-3.0-or-later |
-| `@docparse/core` | Layout, structure, tables, serializers, chunker (pure) | AGPL-3.0-or-later |
-| `@docparse/pdf` | `pdfjs-dist` extraction backend | AGPL-3.0-or-later |
-| `@docparse/cli` | Command-line interface | AGPL-3.0-or-later |
+This is a pnpm monorepo. Only the aggregate package is published to npm; the
+others are internal workspace modules bundled into it at build time.
 
-The core is backend-agnostic: it analyses `PageInput[]` (positioned items), so
-additional backends (DOCX/PPTX/XLSX) can feed the same pipeline later.
+| Package | Published as | Purpose |
+| --- | --- | --- |
+| `packages/docparse` | **`docparse-ts`** (npm) | Main entry — `parseDocument()` + `docparse-ts` CLI |
+| `@docparse/core` | bundled (internal) | Layout, structure, tables, serializers, chunker (pure) |
+| `@docparse/pdf` | bundled (internal) | `pdfjs-dist` extraction backend |
+
+Everything is **AGPL-3.0-or-later** (or commercial). The core is
+backend-agnostic: it analyses `PageInput[]` (positioned items), so additional
+backends (DOCX/PPTX/XLSX) can feed the same pipeline later.
 
 ## Status & limitations
 

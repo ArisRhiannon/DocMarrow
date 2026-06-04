@@ -14,7 +14,9 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "sideEffects": false,
   "scripts": {
     "build": "tsup",
@@ -28,5 +30,6 @@
     "type": "git",
     "url": "https://github.com/ArisRhiannon/docparse.git",
     "directory": "packages/pdf"
-  }
+  },
+  "private": true
 }

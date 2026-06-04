@@ -1,5 +1,8 @@
 # @docparse/pdf
 
+> Internal workspace module — **not published to npm**. It is bundled into the
+> [`docparse-ts`](https://www.npmjs.com/package/docparse-ts) package at build time.
+
 The [`pdfjs-dist`](https://github.com/mozilla/pdf.js) extraction backend for
 [`docparse`](https://github.com/ArisRhiannon/docparse#readme). It reads a PDF and
 emits positioned text items per page (`PageInput[]`) for the core pipeline,

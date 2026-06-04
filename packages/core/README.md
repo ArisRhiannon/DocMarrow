@@ -1,5 +1,8 @@
 # @docparse/core
 
+> Internal workspace module — **not published to npm**. It is bundled into the
+> [`docparse-ts`](https://www.npmjs.com/package/docparse-ts) package at build time.
+
 The backend-agnostic core of [`docparse`](https://github.com/ArisRhiannon/docparse#readme):
 layout analysis, reading-order/column detection, header/footer removal, table
 detection, heading/list/paragraph structure detection, Markdown and JSON
