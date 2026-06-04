@@ -1,0 +1,28 @@
+{
+  "name": "@docparse/core",
+  "version": "0.1.0",
+  "description": "Core layout analysis, structure detection, serializers and RAG chunker for docparse.",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist"],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "clean": "rm -rf dist"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ArisRhiannon/docparse.git",
+    "directory": "packages/core"
+  }
+}

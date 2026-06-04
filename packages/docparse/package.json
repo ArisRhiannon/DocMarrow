@@ -1,0 +1,42 @@
+{
+  "name": "docparse",
+  "version": "0.1.0",
+  "description": "Layout-aware PDF → Markdown + JSON + RAG chunks. TypeScript-native, no Python, no servers.",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "pdf",
+    "markdown",
+    "rag",
+    "document-parsing",
+    "pdf-to-markdown",
+    "layout-analysis",
+    "llm",
+    "typescript"
+  ],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist"],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@docparse/core": "workspace:*",
+    "@docparse/pdf": "workspace:*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ArisRhiannon/docparse.git",
+    "directory": "packages/docparse"
+  }
+}
