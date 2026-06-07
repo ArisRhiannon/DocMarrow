@@ -119,6 +119,12 @@ export interface ListItemNode {
   text: string;
   /** Indentation depth, 0 = top level. */
   level: number;
+  /**
+   * Whether this item is ordered (numbered). Overrides the block's `ordered`,
+   * so an `<ol>` nested inside a `<ul>` (or vice-versa) renders correctly.
+   * Falls back to the block-level `ordered` when omitted.
+   */
+  ordered?: boolean;
 }
 
 export interface ListBlock extends BlockBase {

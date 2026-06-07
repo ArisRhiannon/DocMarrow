@@ -17,7 +17,7 @@ const INLINE = new Set([
   "a", "span", "strong", "em", "b", "i", "code", "small", "sub", "sup", "mark", "u",
   "label", "time", "abbr", "cite", "q", "s", "del", "ins", "kbd", "samp", "var", "tt", "font",
 ]);
-const SKIP = new Set(["script", "style", "svg", "head", "noscript", "template", "hr", "input"]);
+const SKIP = new Set(["script", "style", "head", "noscript", "template", "hr", "input"]);
 
 const tagOf = (el: HTMLElement): string => (el.rawTagName ?? el.tagName ?? "").toLowerCase();
 
@@ -74,7 +74,35 @@ function imgFigure(img: HTMLElement): FigureBlock | null {
   return { ...base, alt, ref: src, ...(mime ? { mime } : {}) };
 }
 
+/**
+ * Build a FigureBlock from an inline `<svg>` (the markup *is* the image), or null
+ * for what looks like a decorative icon. Heuristic: capture when it presents as
+ * an image — `role="img"`, an `aria-label`, a `<title>`, or a size ≥ 24px —
+ * otherwise skip, so icon systems don't flood the output with figures.
+ */
+function svgFigure(svg: HTMLElement): FigureBlock | null {
+  const role = (svg.getAttribute("role") ?? "").toLowerCase();
+  const label = svg.getAttribute("aria-label") ?? "";
+  const titleEl = svg.querySelector("title");
+  const title = titleEl ? normalize(titleEl.text) : "";
+  const w = parseFloat(svg.getAttribute("width") ?? "");
+  const h = parseFloat(svg.getAttribute("height") ?? "");
+  const sizable = (Number.isFinite(w) && w >= 24) || (Number.isFinite(h) && h >= 24);
+  if (!(role === "img" || label || title || sizable)) return null;
+  return {
+    type: "figure",
+    alt: normalize(label || title),
+    ref: "inline-svg",
+    mime: "image/svg+xml",
+    bytes: new TextEncoder().encode(svg.toString()),
+    page: 1,
+    bbox: { ...ZERO_BBOX },
+    confidence: HTML_CONFIDENCE,
+  };
+}
+
 function collectItems(listEl: HTMLElement, level: number): ListItemNode[] {
+  const ordered = tagOf(listEl) === "ol";
   const items: ListItemNode[] = [];
   for (const li of listEl.childNodes) {
     if (!(li instanceof HTMLElement) || tagOf(li) !== "li") continue;
@@ -87,7 +115,7 @@ function collectItems(listEl: HTMLElement, level: number): ListItemNode[] {
         own += " " + (child instanceof TextNode ? child.text : (child as HTMLElement).text ?? "");
       }
     }
-    items.push({ text: normalize(own), level });
+    items.push({ text: normalize(own), level, ordered });
     for (const n of nested) items.push(...collectItems(n, level + 1));
   }
   return items;
@@ -142,6 +170,10 @@ function walk(container: HTMLElement): Block[] {
     } else if (t === "img") {
       flush();
       const fig = imgFigure(node);
+      if (fig) blocks.push(fig);
+    } else if (t === "svg") {
+      flush();
+      const fig = svgFigure(node);
       if (fig) blocks.push(fig);
     } else if (t === "ul" || t === "ol") {
       flush();

@@ -74,6 +74,7 @@ const doc = await parseDocument(bytes, {
   readingOrder: true,       // reconstruct multi-column reading order (PDF)
   dropHeadersFooters: true, // remove repeated headers/footers and page numbers (PDF)
   password: "…",            // password for encrypted PDFs
+  speakerNotes: false,      // PPTX: also extract speaker notes (opt-in)
 });
 
 doc.markdown   // string
@@ -227,11 +228,12 @@ it is never silently dropped:
 - **PDF** — image XObjects are found in the content stream with their on-page
   `bbox`; the `ref` is a stable per-page id (`p2-img1`). The pixels are **not**
   decoded (that needs a canvas, like OCR), so PDF figures carry no `bytes`.
-- **DOCX / PPTX** — pictures are resolved through relationships to `word/media`
-  / `ppt/media`, so the figure carries the real `mime` + `bytes`, plus any
-  authored alt text (`descr`).
-- **HTML** — `<img>` becomes a figure; a `data:` URI is decoded to `bytes`,
-  a normal `src` is kept as the `ref`.
+- **DOCX / PPTX / XLSX** — pictures are resolved through relationships to the
+  embedded media (`word/media`, `ppt/media`, `xl/media`), so the figure carries
+  the real `mime` + `bytes`, plus any authored alt text (`descr`).
+- **HTML** — `<img>` becomes a figure (`data:` URIs are decoded to `bytes`, a
+  normal `src` is kept as the `ref`); a content inline `<svg>` is captured with
+  its markup as `bytes` (decorative icon svgs are skipped by heuristic).
 
 By default a figure has no description (`alt: ""`) and renders as `![](ref)`.
 Pass a `describeImage` hook — an injectable captioner that mirrors `OcrEngine` —
@@ -281,29 +283,32 @@ Known limitations (deliberately stated):
 
 - **OCR is opt-in, not built in.** The core does no OCR, so scanned/image-only
   pages yield no text and are flagged in `meta.warnings` (`meta.hasText` is
-  `false`). Add `@docmarrow/ocr` to recognize them (see above).
-- **XLSX**: cell values are read as stored (formula results, not recomputed);
-  number/date formatting is not applied; charts and embedded images are ignored.
-- **PPTX**: title-vs-body is inferred from placeholders; speaker notes and
-  charts are not extracted (pictures are — see **Figures**).
-- **HTML**: a list block has a single `ordered` flag, so an `<ol>` nested inside
-  a `<ul>` (or vice-versa) renders with the outer list's style.
+  `false`). Add `@docmarrow/ocr` to recognize them (see above). This is a
+  deliberate design choice — the core stays pure JS with no native/heavy deps.
+- **XLSX**: cell values are read as stored (formula results, not recomputed — the
+  cached value is normally what you want). Common **date/time and percent**
+  formats are applied (`45292` → `2024-01-01`, `0.25` → `25%`); other number
+  formats (currency, thousands) keep the raw value, and charts are ignored.
+- **PPTX**: title-vs-body is inferred from placeholders; charts are not extracted.
+  Speaker notes are available via the opt-in `speakerNotes` option (off by
+  default — they are presenter-private).
 - **Figures**: DocMarrow **locates** figures but does not interpret them — there
-  is no built-in captioner; `alt` stays empty unless the source has alt text or
-  you pass `describeImage`. PDF image XObjects are located (bbox + `ref`) but the
-  pixels are **not** decoded, so PDF figures carry no `bytes` (rasterizing needs
-  a canvas, like OCR). Vector art drawn directly (not as an image), inline `<svg>`
-  and XLSX images are not captured.
+  is no built-in captioner (deliberate, like OCR); `alt` stays empty unless the
+  source has alt text or you pass `describeImage`. PDF image XObjects are located
+  (bbox + `ref`) but the pixels are **not** decoded, so PDF figures carry no
+  `bytes` (rasterizing needs a canvas — planned as an opt-in package). Decorative
+  inline `<svg>` icons are skipped by heuristic, and vector art drawn directly in
+  a PDF (not as an image) is not captured.
 - **PDF tables**: ruled tables use the real border lines (multi-word cells kept
   intact); merged/spanning cells are approximated and rotated tables are not
   supported. Borderless tables fall back to whitespace-alignment heuristics.
 - **PDF block-quote detection is conservative** (italic + inset) and best-effort;
   DOCX quotes come from the explicit `Quote` style and are reliable.
 - **Token counts default to a word heuristic.** Pass `countTokens` for exact,
-  model-specific counts.
+  model-specific counts (a deliberate choice to avoid a tokenizer dependency).
 - **`mode: "boost"`** (VLM/LLM refinement) is intentionally not implemented in
   the open core; it throws and is reserved for an optional refiner module.
-- **RTF, ODT and EPUB** are not implemented.
+- **RTF, ODT and EPUB** are not implemented (EPUB could reuse the HTML backend).
 
 ## Benchmark
 
