@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { background: #ffffff; }
+      :root {
+        --ink: #0b1220;
+        --muted: #64748b;
+        --accent: #2563eb;
+        --accent2: #1d4ed8;
+        --border: #e2e8f0;
+      }
+      .banner {
+        width: 1280px;
+        height: 400px;
+        position: relative;
+        overflow: hidden;
+        background:
+          radial-gradient(1100px 460px at 16% -20%, #eaf1ff 0%, rgba(234,241,255,0) 60%),
+          radial-gradient(900px 500px at 100% 120%, #eef2ff 0%, rgba(238,242,255,0) 55%),
+          #ffffff;
+        font-family: "Inter", sans-serif;
+        display: flex;
+        align-items: center;
+        gap: 40px;
+        padding: 0 64px;
+      }
+      /* faint dot grid */
+      .banner::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(rgba(37, 99, 235, 0.10) 1px, transparent 1px);
+        background-size: 26px 26px;
+        -webkit-mask-image: linear-gradient(105deg, rgba(0,0,0,0.5), transparent 55%);
+        mask-image: linear-gradient(105deg, rgba(0,0,0,0.5), transparent 55%);
+        pointer-events: none;
+      }
+      .left { position: relative; width: 600px; flex: none; }
+      .brand { display: flex; align-items: center; gap: 18px; margin-bottom: 22px; }
+      .mark {
+        width: 68px; height: 68px; border-radius: 17px;
+        background: linear-gradient(150deg, #3b82f6, #1d4ed8);
+        box-shadow: 0 10px 24px -8px rgba(37,99,235,0.55);
+        display: flex; align-items: center; justify-content: center;
+      }
+      .wordmark {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        font-weight: 800;
+        font-size: 70px;
+        letter-spacing: -2.5px;
+        line-height: 1;
+        color: var(--ink);
+      }
+      .wordmark .m { color: var(--accent); }
+      .tagline {
+        font-size: 23px;
+        font-weight: 500;
+        color: #334155;
+        letter-spacing: -0.3px;
+        margin-bottom: 26px;
+        max-width: 560px;
+      }
+      .tagline b { color: var(--ink); font-weight: 600; }
+      .chips { display: flex; gap: 9px; flex-wrap: wrap; }
+      .chip {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 13px; font-weight: 500;
+        color: #475569;
+        background: #ffffff;
+        border: 1px solid var(--border);
+        padding: 5px 11px; border-radius: 8px;
+        box-shadow: 0 1px 2px rgba(2,6,23,0.04);
+      }
+      .chip.on { color: var(--accent); border-color: #bfdbfe; background: #f5f9ff; }
+      /* code window */
+      .window {
+        position: relative;
+        flex: 1;
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: 0 24px 50px -22px rgba(15,23,42,0.30), 0 6px 14px -8px rgba(15,23,42,0.12);
+        overflow: hidden;
+        transform: rotate(0.5deg);
+      }
+      .titlebar {
+        height: 38px; display: flex; align-items: center; gap: 8px;
+        padding: 0 16px; border-bottom: 1px solid #eef2f7; background: #fbfcfe;
+      }
+      .dot { width: 11px; height: 11px; border-radius: 50%; }
+      .titlebar .label {
+        margin-left: 10px; font-family: "JetBrains Mono", monospace;
+        font-size: 12.5px; color: #94a3b8;
+      }
+      .code {
+        padding: 18px 20px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 15px; line-height: 1.85; white-space: pre;
+      }
+      .code .h { color: var(--accent); font-weight: 700; }
+      .code .h2 { color: #7c3aed; font-weight: 700; }
+      .code .p { color: #1e293b; }
+      .code .b { color: #0ea5e9; }
+      .code .t { color: #64748b; }
+      .code .img { color: #16a34a; }
+    </style>
+  </head>
+  <body>
+    <div class="banner" id="banner">
+      <div class="left">
+        <div class="brand">
+          <div class="mark">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <path d="M14 2v6h6" />
+              <path d="M8 13h8" /><path d="M8 17h6" />
+            </svg>
+          </div>
+          <div class="wordmark">Doc<span class="m">Marrow</span></div>
+        </div>
+        <div class="tagline">
+          Pure-TypeScript document parser → <b>Markdown</b>, <b>JSON</b> &amp; <b>RAG chunks</b>.
+          No Python, no servers — runs in Node, the browser and edge.
+        </div>
+        <div class="chips">
+          <span class="chip on">PDF</span>
+          <span class="chip on">DOCX</span>
+          <span class="chip on">XLSX</span>
+          <span class="chip on">PPTX</span>
+          <span class="chip on">HTML</span>
+          <span class="chip">+ OCR</span>
+        </div>
+      </div>
+
+      <div class="window">
+        <div class="titlebar">
+          <span class="dot" style="background:#ff5f57"></span>
+          <span class="dot" style="background:#febc2e"></span>
+          <span class="dot" style="background:#28c840"></span>
+          <span class="label">report.pdf → output.md</span>
+        </div>
+        <div class="code"><span class="h"># Quarterly Report</span>
+<span class="h2">## Summary</span>
+<span class="p">Revenue grew across every region.</span>
+<span class="b">-</span> <span class="p">Revenue up 18%</span>
+<span class="b">-</span> <span class="p">Costs down 4%</span>
+
+<span class="t">| Region | Revenue |</span>
+<span class="t">| ------ | ------- |</span>
+<span class="img">![chart](p1-img1)</span></div>
+      </div>
+    </div>
+  </body>
+</html>
