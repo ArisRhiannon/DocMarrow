@@ -147,3 +147,33 @@ export async function quotePdf(): Promise<Uint8Array> {
   quote.forEach((t, i) => page.drawText(t, { x: 110, y: 730 - i * 16, size: 11, font: f.italic }));
   return pdf.save();
 }
+
+/**
+ * A table drawn with real border lines, with multi-word cells. The geometric
+ * detector would split "Item Name" at its internal space into two columns; the
+ * ruled detector uses the borders, so the cell stays intact.
+ */
+export async function ruledTablePdf(): Promise<Uint8Array> {
+  const pdf = await PDFDocument.create();
+  const page = pdf.addPage(A4);
+  const f = await fonts(pdf);
+  const black = rgb(0, 0, 0);
+  const cols = [50, 200, 350, 500];
+  const rowTops = [760, 730, 700, 670]; // pdf-lib bottom-up coords
+  const line = (sx: number, sy: number, ex: number, ey: number): void =>
+    page.drawLine({ start: { x: sx, y: sy }, end: { x: ex, y: ey }, thickness: 1, color: black });
+  for (const y of rowTops) line(cols[0]!, y, cols[cols.length - 1]!, y);
+  for (const x of cols) line(x, rowTops[rowTops.length - 1]!, x, rowTops[0]!);
+
+  const data = [
+    ["Item Name", "Unit Price", "In Stock"],
+    ["Widget Pro", "12 USD", "Yes"],
+    ["Mega Gadget", "8 USD", "No"],
+  ];
+  data.forEach((row, r) =>
+    row.forEach((cell, c) =>
+      page.drawText(cell, { x: cols[c]! + 8, y: rowTops[r]! - 18, size: 11, font: f.body }),
+    ),
+  );
+  return pdf.save();
+}

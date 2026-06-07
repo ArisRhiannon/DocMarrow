@@ -9,6 +9,7 @@ import {
   type ChunkOptions,
   type ContentNode,
   type DocumentMeta,
+  type OcrEngine,
 } from "@docparse/core";
 import { extractPdf } from "@docparse/pdf";
 import { analyzeDocx } from "@docparse/docx";
@@ -25,6 +26,12 @@ export interface ParseOptions extends AnalyzeOptions {
   mode?: "fast" | "boost";
   /** Password for encrypted PDFs. */
   password?: string;
+  /**
+   * Optional OCR engine (e.g. from `@docparse/ocr`). When provided, PDF pages
+   * with no extractable text (scanned/image-only) are OCR'd and fed into the
+   * pipeline. Without it, such pages are reported in `meta.warnings`.
+   */
+  ocr?: OcrEngine;
 }
 
 /** Parsed document with multiple synchronised representations. */
@@ -97,6 +104,21 @@ export async function parseDocument(
     const extraction = await extractPdf(bytes, {
       ...(options.password ? { password: options.password } : {}),
     });
+
+    // Optional OCR: fill pages that yielded no text (scanned/image-only).
+    if (options.ocr) {
+      const emptyPages = extraction.pages
+        .map((p, i) => (p.items.length === 0 ? i + 1 : 0))
+        .filter((n) => n > 0);
+      if (emptyPages.length > 0) {
+        const ocrItems = await options.ocr.ocrPages(bytes, emptyPages);
+        for (const [pageNumber, items] of ocrItems) {
+          const page = extraction.pages[pageNumber - 1];
+          if (page && items.length > 0) page.items = items;
+        }
+      }
+    }
+
     const analyzed = analyze(extraction.pages, options);
     blocks = analyzed.blocks;
     pageBlocks = analyzed.pages;
@@ -142,4 +164,5 @@ export type {
   ChunkOptions,
   ContentNode,
   DocumentMeta,
+  OcrEngine,
 } from "@docparse/core";

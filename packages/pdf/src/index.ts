@@ -1,5 +1,6 @@
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
-import type { PageInput, TextItem } from "@docparse/core";
+import type { PageInput, Rule, TextItem } from "@docparse/core";
+import { extractRules } from "./rules.js";
 
 /** Subset of a pdf.js text item we rely on. */
 interface RawTextItem {
@@ -71,12 +72,14 @@ export async function extractPdf(
       const viewport = page.getViewport({ scale: 1 });
       // getTextContent alone does NOT resolve embedded fonts, so bold/italic are
       // unknown. Building the operator list populates page.commonObjs with the
-      // real font objects (no rasterization / canvas needed). Best-effort:
-      // tolerate failures and fall back to font-family-only styling.
+      // real font objects (no rasterization / canvas needed) and also gives us
+      // the vector paths from which table rules are extracted. Best-effort.
+      let rules: Rule[] = [];
       try {
-        await page.getOperatorList();
+        const opList = await page.getOperatorList();
+        rules = extractRules(opList, viewport.height);
       } catch {
-        // Fonts will fall back to the generic family from content.styles.
+        // Fonts fall back to the generic family; no rules extracted.
       }
       const content = await page.getTextContent();
       const styles = content.styles as Record<string, { fontFamily?: string } | undefined>;
@@ -130,7 +133,7 @@ export async function extractPdf(
         });
       }
 
-      pages.push({ width: viewport.width, height: viewport.height, items });
+      pages.push({ width: viewport.width, height: viewport.height, items, ...(rules.length ? { rules } : {}) });
       page.cleanup();
     }
   } finally {

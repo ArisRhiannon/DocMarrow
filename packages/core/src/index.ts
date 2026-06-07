@@ -8,4 +8,5 @@ export { chunkBlocks, estimateTokens } from "./chunk.js";
 export { groupLines, boundingBox, unionBBox, median, type Line } from "./layout.js";
 export { detectColumns, segmentPage, dropRunningHeadFoot, type Column, type Box } from "./reading-order.js";
 export { detectTables, type DetectedTable } from "./tables.js";
+export { detectRuledTables } from "./ruled-tables.js";
 export { structureLines } from "./structure.js";

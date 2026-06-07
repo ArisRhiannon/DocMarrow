@@ -2,6 +2,7 @@ import { boundingBox, groupLines, type Line, median } from "./layout.js";
 import { dropRunningHeadFoot, segmentPage } from "./reading-order.js";
 import { structureLines } from "./structure.js";
 import { detectTables, type DetectedTable } from "./tables.js";
+import { detectRuledTables } from "./ruled-tables.js";
 import type { AnalysisResult, AnalyzeOptions, Block, PageInput } from "./types.js";
 
 /**
@@ -47,8 +48,18 @@ export function analyze(pages: PageInput[], options: AnalyzeOptions = {}): Analy
     const tableStarts = new Map<Line, DetectedTable>();
     const consumed = new Set<Line>();
     if (tablesEnabled) {
-      const { tables } = detectTables(ordered);
-      for (const t of tables) {
+      // Prefer ruled (vector-line) tables; run the geometric detector only on
+      // the lines the ruled grids did not already claim, so both can coexist.
+      const pageRules = pages[pi]!.rules ?? [];
+      const ruled = pageRules.length
+        ? detectRuledTables(ordered, pageRules)
+        : { tables: [] as DetectedTable[], consumed: new Set<Line>() };
+      const remaining = ruled.consumed.size
+        ? ordered.filter((l) => !ruled.consumed.has(l))
+        : ordered;
+      const geom = detectTables(remaining);
+      for (const t of [...ruled.tables, ...geom.tables]) {
+        if (!t.lines.length) continue;
         tableStarts.set(t.lines[0]!, t);
         for (const l of t.lines) consumed.add(l);
       }

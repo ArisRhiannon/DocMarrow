@@ -8,6 +8,7 @@ import {
   multiColumnPdf,
   nestedListPdf,
   quotePdf,
+  ruledTablePdf,
   tablePdf,
 } from "./fixtures.js";
 
@@ -93,5 +94,17 @@ describe("varied PDF parsing", () => {
     expect(quote).toBeDefined();
     expect(quote!.text).toMatch(/fear/i);
     expect(doc.markdown).toContain("> ");
+  });
+
+  it("reconstructs a line-ruled table, keeping multi-word cells intact", async () => {
+    const doc = await parseDocument(await ruledTablePdf());
+    const table = doc.blocks.find((b) => b.type === "table") as
+      | Extract<Block, { type: "table" }>
+      | undefined;
+    expect(table).toBeDefined();
+    // Borders define the columns, so "Item Name" is NOT split at its space.
+    expect(table!.rows[0]).toEqual(["Item Name", "Unit Price", "In Stock"]);
+    expect(table!.rows).toContainEqual(["Mega Gadget", "8 USD", "No"]);
+    expect(doc.markdown).toContain("| Item Name | Unit Price | In Stock |");
   });
 });

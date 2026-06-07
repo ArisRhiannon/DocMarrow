@@ -111,8 +111,11 @@ docparse-ts <file.pdf|file.docx> [options]
    into bands so they order correctly around columns.
 3. **Header/footer removal** — margin lines that repeat across pages, and bare
    page numbers, are dropped.
-4. **Table detection** — runs of vertically adjacent lines whose cells align into
-   shared columns are reconstructed into rows (geometric approach).
+4. **Table detection** — ruled tables are reconstructed from the page's actual
+   vector border lines (parsed from the content stream): rules are grouped into
+   grids and text is dropped into cells, so borders and multi-word cells are
+   respected. Pages without rules fall back to the geometric detector (runs of
+   vertically adjacent lines whose cells align into shared columns).
 5. **Structure detection** — headings (font-size ratio / bold), ordered &
    unordered lists (nested by indentation), code (monospace runs), block quotes
    (italic, inset), and paragraphs (wrapped lines merged with soft-hyphen joining).
@@ -139,6 +142,9 @@ others are internal workspace modules bundled into it at build time.
 | `@docparse/pdf` | bundled | `pdfjs-dist` extraction backend |
 | `@docparse/docx` | bundled | OOXML (DOCX) structure backend |
 
+`@docparse/ocr` is an **optional, opt-in** package (tesseract.js) and is **not**
+bundled into `docparse-ts`, so the core stays pure JS with no native/heavy deps.
+
 The core is backend-agnostic: it analyses `PageInput[]` (positioned items) for
 PDF, and accepts pre-structured `Block[]` from DOCX, so more backends can feed
 the same pipeline later.
@@ -151,25 +157,56 @@ the same pipeline later.
   **entirely in the browser** (no upload, no server), verified end-to-end in a
   headless Chromium. `pnpm --filter @docparse/playground dev`.
 
+## OCR (optional, opt-in)
+
+Scanned/image-only PDFs have no text layer. The optional `@docparse/ocr` package
+(backed by [tesseract.js](https://github.com/naptha/tesseract.js)) rasterizes
+those pages and recognizes the text, feeding it into the normal pipeline. It is
+**not** bundled into `docparse-ts`, so the core stays pure JS — you opt in:
+
+```bash
+npm install @docparse/ocr
+# Node also needs a canvas to rasterize pages:
+npm install @napi-rs/canvas
+```
+
+```ts
+import { parseDocument } from "docparse-ts";
+import { createOcrEngine } from "@docparse/ocr";
+
+const doc = await parseDocument(bytes, { ocr: createOcrEngine({ lang: "eng" }) });
+// Pages with a text layer are used as-is; only empty (scanned) pages are OCR'd.
+```
+
+`OcrEngine` is just `{ ocrPages(pdf, pageNumbers) }`, so you can plug in any OCR
+backend (a cloud API, a different WASM engine) instead of the bundled tesseract
+one. In the browser the DOM canvas is used and you configure the pdf.js worker.
+
+> OCR is heavier and slower than text extraction (the tesseract model is ~15 MB
+> and downloaded on first use). Use it only for documents that actually need it.
+
 ## Scope & limitations (honest)
 
 What works today, verified by the test suite and on real generated documents:
 
 - **Digital PDFs** → Markdown + JSON + chunks; multi-column reading order with
   column-vs-table disambiguation; heading/list/paragraph/code/quote detection;
-  running header/footer removal; geometric tables.
+  running header/footer removal; ruled (vector-line) + geometric tables.
 - **DOCX** → headings, ordered/unordered nested lists, tables, code, quotes,
   paragraphs, and document title, from the document's own styles and numbering.
+- **Scanned PDFs** → optional OCR via `@docparse/ocr` (see below).
 - Document `meta` with `warnings` (e.g. a page with no extractable text).
 - Pluggable token counter for chunking; ESM + CJS builds; strict types; Node ≥ 20;
   runs in the browser.
 
 Known limitations (deliberately stated):
 
-- **No OCR.** Scanned/image-only PDFs yield no text; such pages are reported in
-  `meta.warnings` and `meta.hasText` is `false`, rather than failing silently.
-- **PDF table detection is geometric.** It recovers whitespace/alignment grids
-  but not ruled-line vector analysis, merged/spanning cells, or rotated tables.
+- **OCR is opt-in, not built in.** The core does no OCR, so scanned/image-only
+  pages yield no text and are flagged in `meta.warnings` (`meta.hasText` is
+  `false`). Add `@docparse/ocr` to recognize them (see below).
+- **PDF tables**: ruled tables use the real border lines (multi-word cells kept
+  intact); merged/spanning cells are approximated and rotated tables are not
+  supported. Borderless tables fall back to whitespace-alignment heuristics.
 - **PDF block-quote detection is conservative** (italic + inset) and best-effort;
   DOCX quotes come from the explicit `Quote` style and are reliable.
 - **Token counts default to a word heuristic.** Pass `countTokens` for exact,

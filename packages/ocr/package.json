@@ -1,0 +1,42 @@
+{
+  "name": "@docparse/ocr",
+  "version": "1.0.0",
+  "description": "Optional OCR engine for docparse-ts (tesseract.js). Rasterizes scanned PDF pages and recognizes text. Opt-in — not bundled into docparse-ts, so the core stays pure JS.",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@docparse/core": "workspace:*",
+    "pdfjs-dist": "^4.10.38",
+    "tesseract.js": "^7.0.0"
+  },
+  "optionalDependencies": {
+    "@napi-rs/canvas": "^1.0.0"
+  },
+  "devDependencies": {
+    "pdf-lib": "^1.17.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ArisRhiannon/docparse-ts.git",
+    "directory": "packages/ocr"
+  },
+  "private": true
+}

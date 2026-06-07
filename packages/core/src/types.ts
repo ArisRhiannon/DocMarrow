@@ -31,6 +31,18 @@ export interface TextItem {
   mono?: boolean;
 }
 
+/**
+ * An axis-aligned vector rule (table border line) extracted from a page's
+ * graphics, in the top-left point convention. Horizontal rules have
+ * `y0 === y1`; vertical rules have `x0 === x1`.
+ */
+export interface Rule {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
 /** One page of extracted content, as produced by a backend. */
 export interface PageInput {
   /** Page width in points. */
@@ -38,6 +50,11 @@ export interface PageInput {
   /** Page height in points. */
   height: number;
   items: TextItem[];
+  /**
+   * Vector rules (table border lines) for the page, if the backend extracts
+   * them. Used to reconstruct ruled tables; absent for flow formats.
+   */
+  rules?: Rule[];
 }
 
 /** Axis-aligned bounding box, top-left origin. */
@@ -105,6 +122,22 @@ export type Block =
   | TableBlock
   | CodeBlock
   | QuoteBlock;
+
+/**
+ * A pluggable OCR engine. Implementations live in optional packages (e.g.
+ * `@docparse/ocr`, which wraps tesseract.js) so the core stays pure JS with no
+ * heavy/native dependencies. When supplied to `parseDocument`, PDF pages that
+ * yield no extractable text (scanned/image-only) are rasterized and OCR'd, and
+ * the recognized words are fed into the normal layout pipeline.
+ */
+export interface OcrEngine {
+  /**
+   * OCR the given 1-based pages of a PDF, returning positioned text items in
+   * the top-left point convention, keyed by page number. Pages omitted from the
+   * result are left untouched.
+   */
+  ocrPages(pdf: Uint8Array, pageNumbers: number[]): Promise<Map<number, TextItem[]>>;
+}
 
 /** Options controlling the analysis pipeline. */
 export interface AnalyzeOptions {
