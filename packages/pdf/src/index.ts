@@ -1,5 +1,6 @@
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
-import type { PageInput, Rule, TextItem } from "@docmarrow/core";
+import type { FigureRef, PageInput, Rule, TextItem } from "@docmarrow/core";
+import { extractImages } from "./images.js";
 import { extractRules } from "./rules.js";
 
 /** Subset of a pdf.js text item we rely on. */
@@ -75,11 +76,13 @@ export async function extractPdf(
       // real font objects (no rasterization / canvas needed) and also gives us
       // the vector paths from which table rules are extracted. Best-effort.
       let rules: Rule[] = [];
+      let figures: FigureRef[] = [];
       try {
         const opList = await page.getOperatorList();
         rules = extractRules(opList, viewport.height);
+        figures = extractImages(opList, viewport.height, n);
       } catch {
-        // Fonts fall back to the generic family; no rules extracted.
+        // Fonts fall back to the generic family; no rules/figures extracted.
       }
       const content = await page.getTextContent();
       const styles = content.styles as Record<string, { fontFamily?: string } | undefined>;
@@ -133,7 +136,13 @@ export async function extractPdf(
         });
       }
 
-      pages.push({ width: viewport.width, height: viewport.height, items, ...(rules.length ? { rules } : {}) });
+      pages.push({
+        width: viewport.width,
+        height: viewport.height,
+        items,
+        ...(rules.length ? { rules } : {}),
+        ...(figures.length ? { figures } : {}),
+      });
       page.cleanup();
     }
   } finally {

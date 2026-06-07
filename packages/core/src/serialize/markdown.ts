@@ -31,6 +31,10 @@ function renderBlock(block: Block): string {
         .join("\n");
     case "table":
       return renderTable(block.rows);
+    case "figure": {
+      const alt = block.alt.replace(/\]/g, "\\]").replace(/\s+/g, " ").trim();
+      return `![${alt}](${block.ref})`;
+    }
     case "list": {
       const counters: number[] = [];
       return block.items

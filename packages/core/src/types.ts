@@ -43,6 +43,22 @@ export interface Rule {
   y1: number;
 }
 
+/**
+ * A figure located by a backend on a page, before the pipeline turns it into a
+ * {@link FigureBlock} (adding page index and confidence). Positioned in the
+ * top-left point convention so it can be woven into reading order.
+ */
+export interface FigureRef {
+  bbox: BBox;
+  /** See {@link FigureBlock.ref}. */
+  ref: string;
+  /** Alt text from the source, if any. */
+  alt?: string;
+  mime?: string;
+  /** Raw image bytes when cheaply available; see {@link FigureBlock.bytes}. */
+  bytes?: Uint8Array;
+}
+
 /** One page of extracted content, as produced by a backend. */
 export interface PageInput {
   /** Page width in points. */
@@ -55,6 +71,11 @@ export interface PageInput {
    * them. Used to reconstruct ruled tables; absent for flow formats.
    */
   rules?: Rule[];
+  /**
+   * Embedded figures/images located on the page, if the backend extracts them.
+   * Woven into the block stream by vertical position during analysis.
+   */
+  figures?: FigureRef[];
 }
 
 /** Axis-aligned bounding box, top-left origin. */
@@ -65,7 +86,14 @@ export interface BBox {
   height: number;
 }
 
-export type BlockType = "heading" | "paragraph" | "list" | "table" | "code" | "quote";
+export type BlockType =
+  | "heading"
+  | "paragraph"
+  | "list"
+  | "table"
+  | "code"
+  | "quote"
+  | "figure";
 
 interface BlockBase {
   type: BlockType;
@@ -115,13 +143,43 @@ export interface QuoteBlock extends BlockBase {
   text: string;
 }
 
+/**
+ * An embedded image / figure (chart, diagram, screenshot, photo). Backends
+ * locate figures and pass through whatever the source gives; understanding the
+ * pixels is delegated to an optional {@link ImageDescriber} (e.g. a vision LLM).
+ */
+export interface FigureBlock extends BlockBase {
+  type: "figure";
+  /**
+   * Alt text / caption. Taken from the source when available (HTML `alt`, OOXML
+   * `descr`), or filled by an injected {@link ImageDescriber}; `""` when neither
+   * is available. This is what makes a figure searchable in Markdown and chunks.
+   */
+  alt: string;
+  /**
+   * Short, human-readable locator for the image: an HTML `src`, the zip media
+   * path for DOCX/PPTX (`word/media/image1.png`), or a synthesized id for a PDF
+   * image XObject (`p2-img1`). Never raw base64 — kept small for clean Markdown.
+   */
+  ref: string;
+  /** MIME type when known (e.g. `"image/png"`). */
+  mime?: string;
+  /**
+   * Raw image bytes when cheaply available (zip media, `data:` URIs). Absent for
+   * PDF image XObjects (rasterizing them needs a canvas — opt-in, like OCR) and
+   * for remote HTML `src`s.
+   */
+  bytes?: Uint8Array;
+}
+
 export type Block =
   | HeadingBlock
   | ParagraphBlock
   | ListBlock
   | TableBlock
   | CodeBlock
-  | QuoteBlock;
+  | QuoteBlock
+  | FigureBlock;
 
 /**
  * A pluggable OCR engine. Implementations live in optional packages (e.g.
@@ -137,6 +195,32 @@ export interface OcrEngine {
    * result are left untouched.
    */
   ocrPages(pdf: Uint8Array, pageNumbers: number[]): Promise<Map<number, TextItem[]>>;
+}
+
+/** A figure handed to an {@link ImageDescriber}. */
+export interface FigureImage {
+  /** The figure's locator (see {@link FigureBlock.ref}). */
+  ref: string;
+  /** 1-based page the figure is on. */
+  page: number;
+  bbox: BBox;
+  mime?: string;
+  /** Image bytes when available; absent for PDF XObjects and remote `src`s. */
+  bytes?: Uint8Array;
+}
+
+/**
+ * A pluggable image/figure describer. Implementations live in user code or
+ * optional packages (e.g. a vision-LLM caption service), mirroring
+ * {@link OcrEngine} so the core stays dependency-free. When supplied to
+ * `parseDocument`, every extracted figure with no alt text is described and the
+ * caption is written into the figure's `alt` (so it serializes into Markdown
+ * and feeds the chunker). Figures that already carry source alt text are left
+ * untouched.
+ */
+export interface ImageDescriber {
+  /** Return a short caption/description for the figure, or `""` to skip it. */
+  describe(image: FigureImage): Promise<string>;
 }
 
 /** Options controlling the analysis pipeline. */

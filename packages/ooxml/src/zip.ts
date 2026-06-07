@@ -34,3 +34,37 @@ export function readTextEntries(
 export function readXmlParts(bytes: Uint8Array): Map<string, string> {
   return readTextEntries(bytes, (name) => /\.(xml|rels)$/i.test(name));
 }
+
+/**
+ * Decompress the zip entries whose name matches `predicate` as raw bytes —
+ * used to pull embedded media (`word/media/*`, `ppt/media/*`) out of an OOXML
+ * container without decoding it.
+ */
+export function readBinaryEntries(
+  bytes: Uint8Array,
+  predicate: (name: string) => boolean,
+): Map<string, Uint8Array> {
+  const files = unzipSync(bytes, { filter: (file) => predicate(file.name) });
+  const out = new Map<string, Uint8Array>();
+  for (const [name, data] of Object.entries(files)) out.set(name, data);
+  return out;
+}
+
+/** Best-effort image MIME type from a file name / path extension. */
+export function mimeFromExt(name: string): string | undefined {
+  const ext = /\.([a-z0-9]+)$/i.exec(name)?.[1]?.toLowerCase();
+  const map: Record<string, string> = {
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    gif: "image/gif",
+    svg: "image/svg+xml",
+    webp: "image/webp",
+    bmp: "image/bmp",
+    tif: "image/tiff",
+    tiff: "image/tiff",
+    emf: "image/emf",
+    wmf: "image/wmf",
+  };
+  return ext ? map[ext] : undefined;
+}

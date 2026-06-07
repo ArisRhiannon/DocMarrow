@@ -12,6 +12,10 @@ export interface ContentNode {
   level?: number;
   /** Present on lists. */
   ordered?: boolean;
+  /** Present on figures: the image locator (see `FigureBlock.ref`). */
+  ref?: string;
+  /** Present on figures when known: MIME type (e.g. "image/png"). */
+  mime?: string;
 }
 
 function contentOf(block: Block): ContentNode["content"] {
@@ -21,6 +25,8 @@ function contentOf(block: Block): ContentNode["content"] {
     case "code":
     case "quote":
       return block.text;
+    case "figure":
+      return block.alt;
     case "list":
       return block.items;
     case "table":
@@ -40,6 +46,10 @@ export function toContentTree(blocks: Block[]): ContentNode[] {
     };
     if (block.type === "heading") node.level = block.level;
     if (block.type === "list") node.ordered = block.ordered;
+    if (block.type === "figure") {
+      node.ref = block.ref;
+      if (block.mime) node.mime = block.mime;
+    }
     return node;
   });
 }

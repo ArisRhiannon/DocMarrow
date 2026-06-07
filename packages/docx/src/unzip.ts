@@ -1,4 +1,4 @@
-import { readXmlParts } from "@docmarrow/ooxml";
+import { readBinaryEntries, readXmlParts } from "@docmarrow/ooxml";
 
 /** The XML parts of a DOCX container that the backend reads. */
 export interface DocxParts {
@@ -10,6 +10,10 @@ export interface DocxParts {
   numbering?: string;
   /** `docProps/core.xml` — core properties (title, author, …). */
   core?: string;
+  /** `word/_rels/document.xml.rels` — relationship ids → targets (e.g. media). */
+  rels?: string;
+  /** Embedded media (`word/media/*`) as raw bytes, keyed by full part name. */
+  media: Map<string, Uint8Array>;
 }
 
 /**
@@ -36,10 +40,23 @@ export function readDocxParts(bytes: Uint8Array): DocxParts {
   const styles = files.get("word/styles.xml");
   const numbering = files.get("word/numbering.xml");
   const core = files.get("docProps/core.xml");
+  const rels = files.get("word/_rels/document.xml.rels");
+
+  // Embedded images are binary, so they need a separate raw read (the XML pass
+  // skips them). Absent or empty in text-only documents.
+  let media = new Map<string, Uint8Array>();
+  try {
+    media = readBinaryEntries(bytes, (name) => name.startsWith("word/media/"));
+  } catch {
+    // No media or unreadable; figures simply won't carry bytes.
+  }
+
   return {
     document,
     ...(styles !== undefined ? { styles } : {}),
     ...(numbering !== undefined ? { numbering } : {}),
     ...(core !== undefined ? { core } : {}),
+    ...(rels !== undefined ? { rels } : {}),
+    media,
   };
 }

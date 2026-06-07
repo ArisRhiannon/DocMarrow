@@ -1,4 +1,4 @@
-import type { Block, ListItemNode } from "@docmarrow/core";
+import type { Block, FigureBlock, ListItemNode } from "@docmarrow/core";
 import {
   attr,
   childrenNamed,
@@ -6,7 +6,9 @@ import {
   collectAllText,
   deepFirst,
   firstChild,
+  mimeFromExt,
   parseXml,
+  readBinaryEntries,
   readXmlParts,
   tagName,
   textOf,
@@ -40,6 +42,80 @@ function placeholderType(sp: XmlNode): string | undefined {
 
 const isTitlePh = (type: string | undefined): boolean => type === "title" || type === "ctrTitle";
 
+/** Pull `ppt/media/*` (embedded images) out as raw bytes; empty on failure. */
+function readMedia(bytes: Uint8Array): Map<string, Uint8Array> {
+  try {
+    return readBinaryEntries(bytes, (name) => name.startsWith("ppt/media/"));
+  } catch {
+    return new Map();
+  }
+}
+
+/** Resolve a relationship id to an image ref / mime / bytes for one slide. */
+type ImageResolver = (rId: string) => { ref: string; mime?: string; bytes?: Uint8Array } | null;
+
+/** Resolve an OPC relative target against a part's base directory. */
+function resolveRel(baseDir: string, target: string): string {
+  if (target.startsWith("/")) return target.slice(1);
+  const out: string[] = [];
+  for (const seg of (baseDir + target).split("/")) {
+    if (seg === "..") out.pop();
+    else if (seg !== "." && seg !== "") out.push(seg);
+  }
+  return out.join("/");
+}
+
+/** Build an rId → image resolver from a slide's rels and the presentation media. */
+function buildSlideImages(
+  relsXml: string | undefined,
+  media: Map<string, Uint8Array>,
+  baseDir: string,
+): ImageResolver {
+  const targets = new Map<string, { target: string; external: boolean }>();
+  if (relsXml) {
+    const rels = deepFirst(parseXml(relsXml), "Relationships");
+    for (const rel of rels ? childrenNamed(rels, "Relationship") : []) {
+      const id = attr(rel, "Id");
+      const target = attr(rel, "Target");
+      if (!id || !target) continue;
+      targets.set(id, { target, external: (attr(rel, "TargetMode") ?? "").toLowerCase() === "external" });
+    }
+  }
+  return (rId) => {
+    const t = targets.get(rId);
+    if (!t) return null;
+    if (t.external || /^https?:/i.test(t.target)) {
+      const mime = mimeFromExt(t.target);
+      return { ref: t.target, ...(mime ? { mime } : {}) };
+    }
+    const path = resolveRel(baseDir, t.target);
+    const bytes = media.get(path);
+    const mime = mimeFromExt(path);
+    return { ref: path, ...(mime ? { mime } : {}), ...(bytes ? { bytes } : {}) };
+  };
+}
+
+/** Build a FigureBlock from a `p:pic` shape, or null if its image is missing. */
+function picFigure(pic: XmlNode, images: ImageResolver): FigureBlock | null {
+  const blip = deepFirst([pic], "a:blip");
+  const rId = blip ? (attr(blip, "r:embed") ?? attr(blip, "r:link")) : undefined;
+  if (!rId) return null;
+  const img = images(rId);
+  if (!img) return null;
+  const cNvPr = deepFirst([pic], "p:cNvPr");
+  const alt = cNvPr ? (attr(cNvPr, "descr") ?? attr(cNvPr, "name") ?? "").replace(/\s+/g, " ").trim() : "";
+  return {
+    type: "figure",
+    alt,
+    ref: img.ref,
+    ...(img.mime ? { mime: img.mime } : {}),
+    ...(img.bytes ? { bytes: img.bytes } : {}),
+    page: 1,
+    bbox: { ...ZERO_BBOX },
+    confidence: PPTX_CONFIDENCE,
+  };
+}
+
 function tableBlock(graphicFrame: XmlNode): Block | null {
   const tbl = deepFirst(childrenOf(graphicFrame), "a:tbl");
   if (!tbl) return null;
@@ -55,13 +131,13 @@ function shapesOf(spTree: XmlNode): XmlNode[] {
   const out: XmlNode[] = [];
   for (const node of childrenOf(spTree)) {
     const tag = tagName(node);
-    if (tag === "p:sp" || tag === "p:graphicFrame") out.push(node);
+    if (tag === "p:sp" || tag === "p:graphicFrame" || tag === "p:pic") out.push(node);
     else if (tag === "p:grpSp") out.push(...shapesOf(node));
   }
   return out;
 }
 
-function slideBlocks(xml: string, slideNumber: number): Block[] {
+function slideBlocks(xml: string, slideNumber: number, images: ImageResolver): Block[] {
   const sld = deepFirst(parseXml(xml), "p:sld");
   const spTree = sld ? deepFirst(childrenOf(sld), "p:spTree") : undefined;
   if (!spTree) return [];
@@ -98,6 +174,11 @@ function slideBlocks(xml: string, slideNumber: number): Block[] {
     if (tag === "p:graphicFrame") {
       const t = tableBlock(sp);
       if (t) blocks.push(t);
+      continue;
+    }
+    if (tag === "p:pic") {
+      const f = picFigure(sp, images);
+      if (f) blocks.push(f);
       continue;
     }
     // p:sp
@@ -209,10 +290,16 @@ export function analyzePptx(bytes: Uint8Array): PptxAnalysis {
   }
 
   const slides = resolveSlides(parts);
+  const media = readMedia(bytes);
   const blocks: Block[] = [];
   slides.forEach((path, i) => {
     const xml = parts.get(path);
-    if (xml) blocks.push(...slideBlocks(xml, i + 1));
+    if (!xml) return;
+    const slash = path.lastIndexOf("/");
+    const dir = path.slice(0, slash + 1);
+    const file = path.slice(slash + 1);
+    const images = buildSlideImages(parts.get(`${dir}_rels/${file}.rels`), media, dir);
+    blocks.push(...slideBlocks(xml, i + 1, images));
   });
 
   const title = coreTitle(parts.get("docProps/core.xml"));
