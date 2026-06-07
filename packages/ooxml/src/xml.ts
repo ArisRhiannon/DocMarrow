@@ -53,8 +53,7 @@ export function textOf(node: XmlNode): string | undefined {
   return typeof raw === "string" ? raw : undefined;
 }
 
-/** First descendant-or-self search is intentionally NOT provided; OOXML walking
- * is order-sensitive, so callers iterate {@link childrenOf} explicitly. These
+/** First direct child named `name`. OOXML walking is order-sensitive, so these
  * shallow finders cover the common "look at my direct children" cases. */
 export function firstChild(node: XmlNode, name: string): XmlNode | undefined {
   return childrenOf(node).find((c) => tagName(c) === name);
@@ -72,4 +71,16 @@ export function deepFirst(nodes: XmlNode[], name: string): XmlNode | undefined {
     if (hit) return hit;
   }
   return undefined;
+}
+
+/** Collect all `#text` under a subtree (optionally mapping certain tags). */
+export function collectAllText(node: XmlNode, onTag?: (tag: string) => string | undefined): string {
+  const tag = tagName(node);
+  if (onTag) {
+    const mapped = onTag(tag);
+    if (mapped !== undefined) return mapped;
+  }
+  const own = textOf(node);
+  if (own !== undefined) return own;
+  return childrenOf(node).map((c) => collectAllText(c, onTag)).join("");
 }

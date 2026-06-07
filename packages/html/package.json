@@ -1,7 +1,7 @@
 {
-  "name": "@docmarrow/docx",
+  "name": "@docmarrow/html",
   "version": "1.0.0",
-  "description": "DOCX (OOXML) backend for docmarrow: structure-preserving extraction to core blocks.",
+  "description": "HTML backend for docmarrow: parses HTML into headings, lists, tables, code, quotes and paragraphs.",
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -24,15 +24,12 @@
   },
   "dependencies": {
     "@docmarrow/core": "workspace:*",
-    "@docmarrow/ooxml": "workspace:*"
-  },
-  "devDependencies": {
-    "fflate": "^0.8.3"
+    "node-html-parser": "^7.1.0"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/ArisRhiannon/DocMarrow.git",
-    "directory": "packages/docx"
+    "directory": "packages/html"
   },
   "private": true
 }

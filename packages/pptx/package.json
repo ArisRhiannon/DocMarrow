@@ -1,7 +1,7 @@
 {
-  "name": "@docmarrow/docx",
+  "name": "@docmarrow/pptx",
   "version": "1.0.0",
-  "description": "DOCX (OOXML) backend for docmarrow: structure-preserving extraction to core blocks.",
+  "description": "PPTX (OOXML presentation) backend for docmarrow: slides to heading + text + table blocks.",
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -32,7 +32,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/ArisRhiannon/DocMarrow.git",
-    "directory": "packages/docx"
+    "directory": "packages/pptx"
   },
   "private": true
 }

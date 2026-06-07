@@ -13,12 +13,16 @@ import {
 } from "@docmarrow/core";
 import { extractPdf } from "@docmarrow/pdf";
 import { analyzeDocx } from "@docmarrow/docx";
+import { analyzeXlsx } from "@docmarrow/xlsx";
+import { analyzePptx } from "@docmarrow/pptx";
+import { analyzeHtml } from "@docmarrow/html";
+import { listEntries } from "@docmarrow/ooxml";
 
 export type DocumentInput = Uint8Array | ArrayBuffer | ArrayBufferView;
 
 export interface ParseOptions extends AnalyzeOptions {
-  /** Input format. Autodetected from the file signature when omitted. */
-  format?: "pdf" | "docx";
+  /** Input format. Autodetected from the file signature/content when omitted. */
+  format?: "pdf" | "docx" | "xlsx" | "pptx" | "html";
   /**
    * "fast" = deterministic rule-based pipeline (default).
    * "boost" requires an enterprise refiner module and is not bundled in core.
@@ -56,18 +60,51 @@ function toUint8(input: DocumentInput): Uint8Array {
   return new Uint8Array(input.buffer, input.byteOffset, input.byteLength);
 }
 
-const PDF_MAGIC = [0x25, 0x50, 0x44, 0x46]; // %PDF
-const ZIP_MAGIC = [0x50, 0x4b, 0x03, 0x04]; // PK\x03\x04 (DOCX is a zip)
+type Format = "pdf" | "docx" | "xlsx" | "pptx" | "html";
 
-function detectFormat(bytes: Uint8Array): "pdf" | "docx" {
+const PDF_MAGIC = [0x25, 0x50, 0x44, 0x46]; // %PDF
+const ZIP_MAGIC = [0x50, 0x4b, 0x03, 0x04]; // PK\x03\x04 (OOXML is a zip)
+
+/** Distinguish an OOXML zip by the marker part it contains. */
+function detectOoxml(bytes: Uint8Array): "docx" | "xlsx" | "pptx" | null {
+  let names: string[];
+  try {
+    names = listEntries(bytes);
+  } catch {
+    return null;
+  }
+  if (names.includes("word/document.xml")) return "docx";
+  if (names.includes("xl/workbook.xml")) return "xlsx";
+  if (names.includes("ppt/presentation.xml")) return "pptx";
+  return null;
+}
+
+/** Heuristic sniff for HTML in the first bytes (doctype, <html>, or common tags). */
+function looksLikeHtml(bytes: Uint8Array): boolean {
+  const head = new TextDecoder("utf-8", { fatal: false })
+    .decode(bytes.subarray(0, 1000))
+    .trimStart()
+    .toLowerCase();
+  return (
+    head.startsWith("<!doctype html") ||
+    /^<html[\s>]/.test(head) ||
+    /<(html|head|body|h[1-6]|p|div|table|ul|ol|article|section|main)[\s>]/.test(head)
+  );
+}
+
+function detectFormat(bytes: Uint8Array): Format {
   if (PDF_MAGIC.every((b, i) => bytes[i] === b)) return "pdf";
-  // DOCX (and other OOXML) are zip containers. We route any zip to the DOCX
-  // backend, which validates the OOXML parts and throws a clear error if the
-  // archive is not actually a Word document.
-  if (ZIP_MAGIC.every((b, i) => bytes[i] === b)) return "docx";
+  if (ZIP_MAGIC.every((b, i) => bytes[i] === b)) {
+    const sub = detectOoxml(bytes);
+    if (sub) return sub;
+    throw new Error(
+      "The input is a zip but not a recognised OOXML document (expected word/document.xml, " +
+        "xl/workbook.xml or ppt/presentation.xml for DOCX/XLSX/PPTX).",
+    );
+  }
+  if (looksLikeHtml(bytes)) return "html";
   throw new Error(
-    "Unrecognised input: expected a PDF (%PDF header) or a DOCX/OOXML zip (PK header). " +
-      "Scanned-image inputs and other formats are not supported.",
+    "Unrecognised input: expected a PDF (%PDF), an OOXML document (DOCX/XLSX/PPTX zip), or HTML.",
   );
 }
 
@@ -126,9 +163,18 @@ export async function parseDocument(
     embeddedTitle = extraction.title;
     pageCount = extraction.pages.length;
   } else {
-    const analyzed = analyzeDocx(bytes);
+    // Flow formats (DOCX/XLSX/PPTX/HTML): each backend returns the same shape
+    // ({ blocks, title?, warnings }) and maps to a single logical page.
+    const analyzed =
+      format === "docx"
+        ? analyzeDocx(bytes)
+        : format === "xlsx"
+          ? analyzeXlsx(bytes)
+          : format === "pptx"
+            ? analyzePptx(bytes)
+            : analyzeHtml(bytes);
     blocks = analyzed.blocks;
-    pageBlocks = [blocks]; // flow format: a single logical page
+    pageBlocks = [blocks];
     warnings = analyzed.warnings;
     embeddedTitle = analyzed.title;
     pageCount = 1;

@@ -1,7 +1,7 @@
 {
-  "name": "@docmarrow/docx",
+  "name": "@docmarrow/ooxml",
   "version": "1.0.0",
-  "description": "DOCX (OOXML) backend for docmarrow: structure-preserving extraction to core blocks.",
+  "description": "Shared OOXML helpers for DocMarrow backends: order-preserving XML parsing and zip reading.",
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -23,16 +23,13 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@docmarrow/core": "workspace:*",
-    "@docmarrow/ooxml": "workspace:*"
-  },
-  "devDependencies": {
+    "fast-xml-parser": "^5.8.0",
     "fflate": "^0.8.3"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/ArisRhiannon/DocMarrow.git",
-    "directory": "packages/docx"
+    "directory": "packages/ooxml"
   },
   "private": true
 }
