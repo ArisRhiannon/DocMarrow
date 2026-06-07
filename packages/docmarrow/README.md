@@ -2,8 +2,9 @@
 
 **Pure TypeScript document parser for PDF → Markdown, JSON and RAG chunks.**
 
-Layout-aware parsing of **PDF & DOCX** with no Python and no servers — runs in
-Node, the browser and edge runtimes.
+Layout-aware parsing of **PDF, DOCX, XLSX, PPTX and HTML** with no Python and no
+servers — runs in Node, the browser and edge runtimes. Optional OCR for scanned
+PDFs via [`@docmarrow/ocr`](https://www.npmjs.com/package/@docmarrow/ocr).
 
 ```bash
 npm install docmarrow

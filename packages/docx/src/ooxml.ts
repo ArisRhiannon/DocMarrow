@@ -9,7 +9,7 @@ import {
   tagName,
   textOf,
   type XmlNode,
-} from "./xml.js";
+} from "@docmarrow/ooxml";
 
 /** DOCX blocks come from author-declared structure, so confidence is uniformly
  * high (unlike the geometric PDF heuristics). bbox is meaningless for a flow

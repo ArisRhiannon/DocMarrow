@@ -9,6 +9,10 @@ export default defineConfig({
       "@docmarrow/core": r("./packages/core/src/index.ts"),
       "@docmarrow/pdf": r("./packages/pdf/src/index.ts"),
       "@docmarrow/docx": r("./packages/docx/src/index.ts"),
+      "@docmarrow/ooxml": r("./packages/ooxml/src/index.ts"),
+      "@docmarrow/xlsx": r("./packages/xlsx/src/index.ts"),
+      "@docmarrow/pptx": r("./packages/pptx/src/index.ts"),
+      "@docmarrow/html": r("./packages/html/src/index.ts"),
     },
   },
   test: {

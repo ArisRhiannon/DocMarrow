@@ -189,8 +189,8 @@ export interface AnalysisResult {
 /** High-level metadata about a parsed document. */
 export interface DocumentMeta {
   /** Source format the bytes were parsed as. */
-  format: "pdf" | "docx";
-  /** Number of pages (PDF) or `1` for flow formats like DOCX. */
+  format: "pdf" | "docx" | "xlsx" | "pptx" | "html";
+  /** Number of pages (PDF) or `1` for flow formats (DOCX/XLSX/PPTX/HTML). */
   pageCount: number;
   /**
    * True when at least one page yielded extractable text. `false` is the

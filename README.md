@@ -4,16 +4,19 @@
 
 _No Python, no servers — layout-aware parsing that runs in Node, the browser and edge._
 
-DocMarrow turns a **PDF or DOCX** into clean **Markdown**, a structured
-**JSON** content tree, and **RAG-ready chunks** — reconstructing reading order,
-multi-column flow, headings, lists, tables, code and quotes instead of dumping a
-flat soup of text.
+DocMarrow turns a **PDF, DOCX, XLSX, PPTX or HTML** file into clean **Markdown**,
+a structured **JSON** content tree, and **RAG-ready chunks** — reconstructing
+reading order, multi-column flow, headings, lists, tables, code and quotes
+instead of dumping a flat soup of text. One `parseDocument()` call, same output
+shape for every format.
 
-It is pure JS/WASM (PDFs via [`pdfjs-dist`](https://github.com/mozilla/pdf.js),
-DOCX via [`fflate`](https://github.com/101arrowz/fflate) +
-[`fast-xml-parser`](https://github.com/NaturalIntelligence/fast-xml-parser)), so
-it runs in **Node, the browser and edge runtimes** without native binaries or a
-Python sidecar — see the [in-browser playground](./playground).
+It is pure JS/WASM (PDFs via [`pdfjs-dist`](https://github.com/mozilla/pdf.js);
+OOXML via [`fflate`](https://github.com/101arrowz/fflate) +
+[`fast-xml-parser`](https://github.com/NaturalIntelligence/fast-xml-parser); HTML
+via [`node-html-parser`](https://github.com/taoqf/node-html-parser)), so it runs
+in **Node, the browser and edge runtimes** without native binaries or a Python
+sidecar — see the [in-browser playground](./playground). Scanned PDFs can be
+OCR'd with the optional [`@docmarrow/ocr`](./packages/ocr) add-on.
 
 > **Status: 1.0.** The public API and the PDF and DOCX pipelines are stable,
 > typed, and covered by an automated test suite (unit tests plus integration
@@ -122,15 +125,22 @@ docmarrow <file.pdf|file.docx> [options]
    unordered lists (nested by indentation), code (monospace runs), block quotes
    (italic, inset), and paragraphs (wrapped lines merged with soft-hyphen joining).
 
-**DOCX** — Word files carry explicit structure, so the OOXML backend
-(`@docmarrow/docx`) maps it directly to the same block model without geometry:
-paragraph styles → headings/quotes/code, `w:numPr` + `numbering.xml` →
-ordered/unordered nested lists, `w:tbl` → tables, `docProps/core.xml` → title.
+**DOCX / XLSX / PPTX / HTML** — these formats carry explicit structure, so each
+backend maps it directly to the same block model without geometry:
 
-Both backends feed the **same** serializers (Markdown, JSON) and the same
+- **DOCX** (`@docmarrow/docx`): paragraph styles → headings/quotes/code,
+  `w:numPr` + `numbering.xml` → ordered/unordered nested lists, `w:tbl` → tables.
+- **XLSX** (`@docmarrow/xlsx`): each non-empty sheet → a heading (sheet name) + a
+  table of its used cell range (shared strings, numbers, inline strings, booleans).
+- **PPTX** (`@docmarrow/pptx`): each slide → a heading (its title, or "Slide N"),
+  bulleted body placeholders → nested lists, `a:tbl` → tables, in slide order.
+- **HTML** (`@docmarrow/html`): `h1`–`h6`, `p`, `ul`/`ol`, `table`, `pre`,
+  `blockquote` → the matching blocks; loose inline text → paragraphs.
+
+All backends feed the **same** serializers (Markdown, JSON) and the same
 structure-aware **chunker**, so output is uniform across formats. Every block
-carries a `page`, a `bbox` (zero for flow formats like DOCX) and a heuristic
-`confidence` for citations and traceability.
+carries a `page`, a `bbox` (zero for flow formats) and a heuristic `confidence`
+for citations and traceability.
 
 ## Packages
 
@@ -142,7 +152,11 @@ others are internal workspace modules bundled into it at build time.
 | `packages/docmarrow` | **`docmarrow`** (npm) | Main entry — `parseDocument()` + `docmarrow` CLI |
 | `@docmarrow/core` | bundled | Layout, structure, tables, serializers, chunker (pure) |
 | `@docmarrow/pdf` | bundled | `pdfjs-dist` extraction backend |
-| `@docmarrow/docx` | bundled | OOXML (DOCX) structure backend |
+| `@docmarrow/ooxml` | bundled | Shared OOXML helpers (order-preserving XML + zip) |
+| `@docmarrow/docx` | bundled | DOCX (Word) structure backend |
+| `@docmarrow/xlsx` | bundled | XLSX (Excel) structure backend |
+| `@docmarrow/pptx` | bundled | PPTX (PowerPoint) structure backend |
+| `@docmarrow/html` | bundled | HTML backend |
 
 `@docmarrow/ocr` is an **optional, opt-in** package (tesseract.js) and is **not**
 bundled into `docmarrow`, so the core stays pure JS with no native/heavy deps.
@@ -196,7 +210,12 @@ What works today, verified by the test suite and on real generated documents:
   running header/footer removal; ruled (vector-line) + geometric tables.
 - **DOCX** → headings, ordered/unordered nested lists, tables, code, quotes,
   paragraphs, and document title, from the document's own styles and numbering.
-- **Scanned PDFs** → optional OCR via `@docmarrow/ocr` (see below).
+- **XLSX** → each non-empty sheet as a heading + a table (shared strings,
+  numbers, inline strings, booleans; trimmed to the used range).
+- **PPTX** → each slide as a heading (title or "Slide N") + bulleted body text
+  (nested lists) + slide tables, in presentation order.
+- **HTML** → headings, paragraphs, nested lists, tables, code (`pre`) and quotes.
+- **Scanned PDFs** → optional OCR via `@docmarrow/ocr` (see above).
 - Document `meta` with `warnings` (e.g. a page with no extractable text).
 - Pluggable token counter for chunking; ESM + CJS builds; strict types; Node ≥ 20;
   runs in the browser.
@@ -205,7 +224,13 @@ Known limitations (deliberately stated):
 
 - **OCR is opt-in, not built in.** The core does no OCR, so scanned/image-only
   pages yield no text and are flagged in `meta.warnings` (`meta.hasText` is
-  `false`). Add `@docmarrow/ocr` to recognize them (see below).
+  `false`). Add `@docmarrow/ocr` to recognize them (see above).
+- **XLSX**: cell values are read as stored (formula results, not recomputed);
+  number/date formatting is not applied; charts and images are ignored.
+- **PPTX**: title-vs-body is inferred from placeholders; speaker notes, charts
+  and images are not extracted.
+- **HTML**: a list block has a single `ordered` flag, so an `<ol>` nested inside
+  a `<ul>` (or vice-versa) renders with the outer list's style.
 - **PDF tables**: ruled tables use the real border lines (multi-word cells kept
   intact); merged/spanning cells are approximated and rotated tables are not
   supported. Borderless tables fall back to whitespace-alignment heuristics.
@@ -215,7 +240,7 @@ Known limitations (deliberately stated):
   model-specific counts.
 - **`mode: "boost"`** (VLM/LLM refinement) is intentionally not implemented in
   the open core; it throws and is reserved for an optional refiner module.
-- **PPTX/XLSX/HTML** are not implemented.
+- **RTF, ODT and EPUB** are not implemented.
 
 ## Benchmark
 
