@@ -3,10 +3,10 @@
 > Internal workspace module — **not published to npm**. It is bundled into the
 > [`docparse-ts`](https://www.npmjs.com/package/docparse-ts) package at build time.
 
-The backend-agnostic core of [`docparse`](https://github.com/ArisRhiannon/docparse#readme):
+The backend-agnostic core of [`docparse-ts`](https://github.com/ArisRhiannon/docparse-ts#readme):
 layout analysis, reading-order/column detection, header/footer removal, table
-detection, heading/list/paragraph structure detection, Markdown and JSON
-serializers, and a structure-aware RAG chunker.
+detection, heading/list/paragraph/code/quote structure detection, Markdown and
+JSON serializers, and a structure-aware RAG chunker.
 
 It operates on `PageInput[]` — positioned text items in a top-left coordinate
 convention — so any extraction backend can feed it.
@@ -19,7 +19,7 @@ const markdown = toMarkdown(blocks);
 const chunks = chunkBlocks(blocks, { maxTokens: 512 });
 ```
 
-Most users should use the [`docparse`](https://www.npmjs.com/package/docparse)
-package instead, which pairs this with a PDF backend.
+Most users should use the [`docparse-ts`](https://www.npmjs.com/package/docparse-ts)
+package instead, which pairs this with the PDF and DOCX backends.
 
 Dual-licensed: AGPL-3.0-or-later or a commercial license.

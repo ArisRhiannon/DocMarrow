@@ -1,5 +1,5 @@
 {
-  "name": "docparse-monorepo",
+  "name": "docparse-ts-monorepo",
   "version": "0.0.0",
   "private": true,
   "description": "Layout-aware document parsing for RAG. TypeScript-native.",
@@ -14,7 +14,8 @@
     "test:watch": "vitest",
     "clean": "pnpm -r exec rm -rf dist .turbo node_modules/.cache",
     "changeset": "changeset",
-    "release": "pnpm build && changeset publish"
+    "release": "pnpm build && changeset publish",
+    "bench": "pnpm --filter @docparse/bench start"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.10",

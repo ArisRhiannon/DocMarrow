@@ -33,6 +33,7 @@ interface Unit {
 export function chunkBlocks(blocks: Block[], options: ChunkOptions = {}): Chunk[] {
   const maxTokens = options.maxTokens ?? 512;
   const overlap = options.overlap ?? 64;
+  const count = options.countTokens ?? estimateTokens;
 
   const headingPath: string[] = [];
   const units: Unit[] = blocks.map((block) => {
@@ -43,7 +44,7 @@ export function chunkBlocks(blocks: Block[], options: ChunkOptions = {}): Chunk[
       headingPath.length = lvl;
     }
     const text = toMarkdown([block]).trim();
-    return { text, tokens: estimateTokens(text), page: block.page, block, path: [...headingPath] };
+    return { text, tokens: count(text), page: block.page, block, path: [...headingPath] };
   });
 
   const chunks: Chunk[] = [];
@@ -51,7 +52,7 @@ export function chunkBlocks(blocks: Block[], options: ChunkOptions = {}): Chunk[
 
   const flush = (): void => {
     if (current.length === 0) return;
-    chunks.push(makeChunk(current));
+    chunks.push(makeChunk(current, count));
     current = [...trailingOverlap(current, overlap)];
   };
 
@@ -81,12 +82,12 @@ function trailingOverlap(units: Unit[], overlap: number): Unit[] {
   return carry.length === units.length ? carry.slice(1) : carry;
 }
 
-function makeChunk(units: Unit[]): Chunk {
+function makeChunk(units: Unit[], count: (text: string) => number): Chunk {
   const text = units.map((u) => u.text).join("\n\n");
   const pages = [...new Set(units.map((u) => u.page))].sort((a, b) => a - b);
   return {
     text,
-    tokens: estimateTokens(text),
+    tokens: count(text),
     pages,
     path: [...units[units.length - 1]!.path],
     bbox: unionBBox(units.map((u) => u.block.bbox)),

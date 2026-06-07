@@ -1,7 +1,7 @@
 {
-  "name": "@docparse/pdf",
+  "name": "@docparse/docx",
   "version": "1.0.0",
-  "description": "pdfjs-dist backend for docparse: positioned text extraction per page.",
+  "description": "DOCX (OOXML) backend for docparse: structure-preserving extraction to core blocks.",
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -24,12 +24,13 @@
   },
   "dependencies": {
     "@docparse/core": "workspace:*",
-    "pdfjs-dist": "^4.10.38"
+    "fast-xml-parser": "^5.8.0",
+    "fflate": "^0.8.3"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/ArisRhiannon/docparse-ts.git",
-    "directory": "packages/pdf"
+    "directory": "packages/docx"
   },
   "private": true
 }

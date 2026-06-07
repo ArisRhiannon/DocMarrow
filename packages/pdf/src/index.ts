@@ -15,12 +15,20 @@ export interface ExtractOptions {
   password?: string;
 }
 
-/** True if a font name signals a bold/italic style. */
-function styleFromName(name: string): { bold: boolean; italic: boolean } {
+/** Result of extracting a PDF: positioned pages plus document-level metadata. */
+export interface PdfExtraction {
+  pages: PageInput[];
+  /** Document title from the PDF info dictionary / XMP, when present. */
+  title?: string;
+}
+
+/** True if a font name signals a bold/italic/monospace style. */
+function styleFromName(name: string): { bold: boolean; italic: boolean; mono: boolean } {
   const n = name.toLowerCase();
   return {
     bold: /bold|black|heavy|semibold|demibold/.test(n),
     italic: /italic|oblique/.test(n),
+    mono: /mono|courier|consol|menlo|inconsolata|sourcecode|source code|typewriter|cour\b/.test(n),
   };
 }
 
@@ -34,32 +42,66 @@ function styleFromName(name: string): { bold: boolean; italic: boolean } {
 export async function extractPdf(
   data: Uint8Array,
   options: ExtractOptions = {},
-): Promise<PageInput[]> {
+): Promise<PdfExtraction> {
+  // pdf.js may transfer (detach) the input ArrayBuffer to its worker, which
+  // would neuter the caller's Uint8Array and break any reuse (e.g. parsing the
+  // same bytes twice). Hand pdf.js a private copy so the caller's buffer is safe.
   const doc = await getDocument({
-    data,
+    data: data.slice(),
     isEvalSupported: false,
     useSystemFonts: true,
     ...(options.password ? { password: options.password } : {}),
   }).promise;
+
+  let title: string | undefined;
+  try {
+    const meta = await doc.getMetadata();
+    const info = meta?.info as { Title?: unknown } | undefined;
+    if (info && typeof info.Title === "string" && info.Title.trim()) {
+      title = info.Title.trim();
+    }
+  } catch {
+    // Metadata is optional; ignore extraction failures.
+  }
 
   const pages: PageInput[] = [];
   try {
     for (let n = 1; n <= doc.numPages; n++) {
       const page = await doc.getPage(n);
       const viewport = page.getViewport({ scale: 1 });
+      // getTextContent alone does NOT resolve embedded fonts, so bold/italic are
+      // unknown. Building the operator list populates page.commonObjs with the
+      // real font objects (no rasterization / canvas needed). Best-effort:
+      // tolerate failures and fall back to font-family-only styling.
+      try {
+        await page.getOperatorList();
+      } catch {
+        // Fonts will fall back to the generic family from content.styles.
+      }
       const content = await page.getTextContent();
+      const styles = content.styles as Record<string, { fontFamily?: string } | undefined>;
 
-      const fontCache = new Map<string, { bold: boolean; italic: boolean }>();
-      const resolveFont = (name: string): { bold: boolean; italic: boolean } => {
-        if (!name) return { bold: false, italic: false };
+      const fontCache = new Map<string, { bold: boolean; italic: boolean; mono: boolean }>();
+      const resolveFont = (name: string): { bold: boolean; italic: boolean; mono: boolean } => {
+        if (!name) return { bold: false, italic: false, mono: false };
         const cached = fontCache.get(name);
         if (cached) return cached;
-        let info = { bold: false, italic: false };
+        const family = styles[name]?.fontFamily ?? "";
+        let info = { bold: false, italic: false, mono: /mono/i.test(family) };
         try {
-          const font = page.commonObjs.get(name) as { name?: string } | null;
-          if (font?.name) info = styleFromName(font.name);
+          const font = page.commonObjs.get(name) as
+            | { name?: string; bold?: boolean; italic?: boolean }
+            | null;
+          if (font) {
+            const fromName = font.name ? styleFromName(font.name) : info;
+            info = {
+              bold: font.bold ?? fromName.bold,
+              italic: font.italic ?? fromName.italic,
+              mono: info.mono || fromName.mono,
+            };
+          }
         } catch {
-          // Font object not resolved; fall back to no style.
+          // Font object not resolved; keep the family-derived fallback.
         }
         fontCache.set(name, info);
         return info;
@@ -84,6 +126,7 @@ export async function extractPdf(
           fontName: raw.fontName,
           bold: style.bold,
           italic: style.italic,
+          mono: style.mono,
         });
       }
 
@@ -93,5 +136,5 @@ export async function extractPdf(
   } finally {
     await doc.destroy();
   }
-  return pages;
+  return { pages, ...(title ? { title } : {}) };
 }

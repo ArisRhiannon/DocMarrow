@@ -1,0 +1,17 @@
+{
+  "name": "@docparse/bench",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Reproducible timing benchmark for docparse-ts (throughput/latency only).",
+  "scripts": {
+    "start": "node bench.mjs"
+  },
+  "dependencies": {
+    "docparse-ts": "workspace:*"
+  },
+  "devDependencies": {
+    "fflate": "^0.8.3",
+    "pdf-lib": "^1.17.1"
+  }
+}

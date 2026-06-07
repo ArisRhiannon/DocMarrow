@@ -13,6 +13,7 @@ export interface Line {
   fontSize: number;
   bold: boolean;
   italic: boolean;
+  mono: boolean;
 }
 
 export function median(values: number[]): number {
@@ -77,6 +78,7 @@ function toLine(group: TextItem[]): Line {
   const totalW = items.reduce((s, i) => s + Math.max(i.width, 1), 0) || 1;
   const boldW = items.reduce((s, i) => s + (i.bold ? Math.max(i.width, 1) : 0), 0);
   const italicW = items.reduce((s, i) => s + (i.italic ? Math.max(i.width, 1) : 0), 0);
+  const monoW = items.reduce((s, i) => s + (i.mono ? Math.max(i.width, 1) : 0), 0);
 
   return {
     items,
@@ -88,6 +90,7 @@ function toLine(group: TextItem[]): Line {
     fontSize,
     bold: boldW / totalW > 0.6,
     italic: italicW / totalW > 0.6,
+    mono: monoW / totalW > 0.6,
   };
 }
 

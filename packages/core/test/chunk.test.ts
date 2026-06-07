@@ -50,6 +50,16 @@ describe("chunkBlocks", () => {
     const tail = chunks[0]!.text.split("\n\n").at(-1)!;
     expect(chunks[1]!.text.startsWith(tail)).toBe(true);
   });
+
+  it("uses a custom countTokens to drive boundaries and reported counts", () => {
+    // Count characters instead of the word heuristic.
+    const countTokens = (t: string): number => t.length;
+    const blocks = [para("aaaa"), para("bbbb"), para("cccc")];
+    const chunks = chunkBlocks(blocks, { maxTokens: 5, overlap: 0, countTokens });
+    // Each 4-char paragraph alone fits in 5, but two (8) do not → one block per chunk.
+    expect(chunks).toHaveLength(3);
+    expect(chunks[0]!.tokens).toBe(countTokens(chunks[0]!.text));
+  });
 });
 
 describe("estimateTokens", () => {

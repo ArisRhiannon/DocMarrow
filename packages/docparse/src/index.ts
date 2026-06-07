@@ -8,14 +8,16 @@ import {
   type Chunk,
   type ChunkOptions,
   type ContentNode,
+  type DocumentMeta,
 } from "@docparse/core";
 import { extractPdf } from "@docparse/pdf";
+import { analyzeDocx } from "@docparse/docx";
 
 export type DocumentInput = Uint8Array | ArrayBuffer | ArrayBufferView;
 
 export interface ParseOptions extends AnalyzeOptions {
-  /** Input format. Only "pdf" is supported in v0.1; autodetected when omitted. */
-  format?: "pdf";
+  /** Input format. Autodetected from the file signature when omitted. */
+  format?: "pdf" | "docx";
   /**
    * "fast" = deterministic rule-based pipeline (default).
    * "boost" requires an enterprise refiner module and is not bundled in core.
@@ -35,6 +37,8 @@ export interface ParsedDocument {
   json: ContentNode[];
   /** Blocks grouped by 1-based page index. */
   pages: Block[][];
+  /** Document metadata: format, page count, title, hasText, warnings. */
+  meta: DocumentMeta;
   /** Structure-aware chunking for RAG. */
   chunks(options?: ChunkOptions): Chunk[];
 }
@@ -46,12 +50,17 @@ function toUint8(input: DocumentInput): Uint8Array {
 }
 
 const PDF_MAGIC = [0x25, 0x50, 0x44, 0x46]; // %PDF
+const ZIP_MAGIC = [0x50, 0x4b, 0x03, 0x04]; // PK\x03\x04 (DOCX is a zip)
 
-function detectFormat(bytes: Uint8Array): "pdf" {
+function detectFormat(bytes: Uint8Array): "pdf" | "docx" {
   if (PDF_MAGIC.every((b, i) => bytes[i] === b)) return "pdf";
+  // DOCX (and other OOXML) are zip containers. We route any zip to the DOCX
+  // backend, which validates the OOXML parts and throws a clear error if the
+  // archive is not actually a Word document.
+  if (ZIP_MAGIC.every((b, i) => bytes[i] === b)) return "docx";
   throw new Error(
-    "docparse v0.1 supports digital PDFs only. The input does not start with the %PDF header. " +
-      "DOCX/PPTX/XLSX backends are planned for v0.2.",
+    "Unrecognised input: expected a PDF (%PDF header) or a DOCX/OOXML zip (PK header). " +
+      "Scanned-image inputs and other formats are not supported.",
   );
 }
 
@@ -75,18 +84,53 @@ export async function parseDocument(
 
   const bytes = toUint8(input);
   const format = options.format ?? detectFormat(bytes);
-  if (format !== "pdf") {
-    throw new Error(`Unsupported format: ${format}`);
+
+  // Each backend yields a common shape: blocks, an optional embedded title, and
+  // warnings. From there, serialization, JSON, chunking and meta are identical.
+  let blocks: Block[];
+  let pageBlocks: Block[][];
+  let embeddedTitle: string | undefined;
+  let warnings: string[];
+  let pageCount: number;
+
+  if (format === "pdf") {
+    const extraction = await extractPdf(bytes, {
+      ...(options.password ? { password: options.password } : {}),
+    });
+    const analyzed = analyze(extraction.pages, options);
+    blocks = analyzed.blocks;
+    pageBlocks = analyzed.pages;
+    warnings = analyzed.warnings;
+    embeddedTitle = extraction.title;
+    pageCount = extraction.pages.length;
+  } else {
+    const analyzed = analyzeDocx(bytes);
+    blocks = analyzed.blocks;
+    pageBlocks = [blocks]; // flow format: a single logical page
+    warnings = analyzed.warnings;
+    embeddedTitle = analyzed.title;
+    pageCount = 1;
   }
 
-  const pages = await extractPdf(bytes, { ...(options.password ? { password: options.password } : {}) });
-  const { blocks, pages: pageBlocks } = analyze(pages, options);
+  // Prefer the embedded title; fall back to the first level-1 heading.
+  const firstH1 = blocks.find((b) => b.type === "heading" && b.level === 1);
+  const resolvedTitle =
+    embeddedTitle ?? (firstH1 && "text" in firstH1 ? firstH1.text : undefined);
+
+  const meta: DocumentMeta = {
+    format,
+    pageCount,
+    hasText: blocks.length > 0,
+    ...(resolvedTitle ? { title: resolvedTitle } : {}),
+    warnings,
+  };
 
   return {
     markdown: toMarkdown(blocks),
     blocks,
     json: toContentTree(blocks),
     pages: pageBlocks,
+    meta,
     chunks: (chunkOptions?: ChunkOptions) => chunkBlocks(blocks, chunkOptions),
   };
 }
@@ -97,4 +141,5 @@ export type {
   Chunk,
   ChunkOptions,
   ContentNode,
+  DocumentMeta,
 } from "@docparse/core";

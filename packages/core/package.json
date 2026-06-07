@@ -1,6 +1,6 @@
 {
   "name": "@docparse/core",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Core layout analysis, structure detection, serializers and RAG chunker for docparse.",
   "license": "AGPL-3.0-or-later",
   "type": "module",
@@ -24,7 +24,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ArisRhiannon/docparse.git",
+    "url": "https://github.com/ArisRhiannon/docparse-ts.git",
     "directory": "packages/core"
   },
   "private": true

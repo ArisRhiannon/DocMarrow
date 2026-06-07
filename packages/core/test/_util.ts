@@ -5,6 +5,7 @@ export interface ItemOpts {
   width?: number;
   bold?: boolean;
   italic?: boolean;
+  mono?: boolean;
 }
 
 /** Build a TextItem with sensible derived defaults (top-left origin). */
@@ -19,6 +20,7 @@ export function item(text: string, x: number, y: number, opts: ItemOpts = {}): T
     fontSize,
     bold: opts.bold ?? false,
     italic: opts.italic ?? false,
+    mono: opts.mono ?? false,
   };
 }
 

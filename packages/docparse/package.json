@@ -1,6 +1,6 @@
 {
   "name": "docparse-ts",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Layout-aware PDF → Markdown + JSON + RAG chunks. TypeScript-native, no Python, no servers.",
   "keywords": [
     "pdf",
@@ -41,18 +41,21 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "fast-xml-parser": "^5.8.0",
+    "fflate": "^0.8.3",
     "pdfjs-dist": "^4.10.38"
   },
   "devDependencies": {
     "@docparse/core": "workspace:*",
+    "@docparse/docx": "workspace:*",
     "@docparse/pdf": "workspace:*"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ArisRhiannon/docparse.git"
+    "url": "git+https://github.com/ArisRhiannon/docparse-ts.git"
   },
-  "homepage": "https://github.com/ArisRhiannon/docparse#readme",
+  "homepage": "https://github.com/ArisRhiannon/docparse-ts#readme",
   "bugs": {
-    "url": "https://github.com/ArisRhiannon/docparse/issues"
+    "url": "https://github.com/ArisRhiannon/docparse-ts/issues"
   }
 }

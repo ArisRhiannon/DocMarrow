@@ -8,6 +8,7 @@ export default defineConfig({
     alias: {
       "@docparse/core": r("./packages/core/src/index.ts"),
       "@docparse/pdf": r("./packages/pdf/src/index.ts"),
+      "@docparse/docx": r("./packages/docx/src/index.ts"),
     },
   },
   test: {

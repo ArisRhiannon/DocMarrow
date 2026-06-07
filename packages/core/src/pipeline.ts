@@ -22,6 +22,17 @@ export function analyze(pages: PageInput[], options: AnalyzeOptions = {}): Analy
       : groupLines(p.items).sort((a, b) => a.y - b.y || a.x - b.x),
   );
 
+  // Surface pages that yielded no text — almost always scanned/image-only pages
+  // that would require OCR (which this pipeline deliberately does not do).
+  const warnings: string[] = [];
+  perPageLines.forEach((lines, i) => {
+    if (lines.length === 0) {
+      warnings.push(
+        `Page ${i + 1} has no extractable text (likely scanned or image-only; OCR is not performed).`,
+      );
+    }
+  });
+
   const filtered = dropHF
     ? dropRunningHeadFoot(perPageLines.map((lines, i) => ({ lines, height: pages[i]!.height })))
     : perPageLines;
@@ -72,5 +83,5 @@ export function analyze(pages: PageInput[], options: AnalyzeOptions = {}): Analy
     return blocks;
   });
 
-  return { blocks: pageBlocks.flat(), pages: pageBlocks };
+  return { blocks: pageBlocks.flat(), pages: pageBlocks, warnings };
 }
