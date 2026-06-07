@@ -2,9 +2,14 @@
 
 **Pure TypeScript document parser for PDF → Markdown, JSON and RAG chunks.**
 
-Layout-aware parsing of **PDF, DOCX, XLSX, PPTX and HTML** with no Python and no
-servers — runs in Node, the browser and edge runtimes. Optional OCR for scanned
-PDFs via [`@docmarrow/ocr`](https://www.npmjs.com/package/@docmarrow/ocr).
+[![npm version](https://img.shields.io/npm/v/docmarrow.svg)](https://www.npmjs.com/package/docmarrow)
+[![types: TypeScript](https://img.shields.io/npm/types/docmarrow.svg)](https://www.npmjs.com/package/docmarrow)
+
+Convert **PDF, Word (DOCX), Excel (XLSX), PowerPoint (PPTX) and HTML** to clean
+**Markdown** or structured **JSON**, plus **RAG-ready chunks** for LLM pipelines.
+Layout-aware parsing with no Python and no servers — runs in Node, the browser
+and edge runtimes. Optional OCR for scanned PDFs via
+[`@docmarrow/ocr`](https://www.npmjs.com/package/@docmarrow/ocr).
 
 ```bash
 npm install docmarrow

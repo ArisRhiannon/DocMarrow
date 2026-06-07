@@ -4,6 +4,15 @@
 
 _No Python, no servers — layout-aware parsing that runs in Node, the browser and edge._
 
+[![npm version](https://img.shields.io/npm/v/docmarrow.svg)](https://www.npmjs.com/package/docmarrow)
+[![CI](https://github.com/ArisRhiannon/DocMarrow/actions/workflows/ci.yml/badge.svg)](https://github.com/ArisRhiannon/DocMarrow/actions/workflows/ci.yml)
+[![types: TypeScript](https://img.shields.io/npm/types/docmarrow.svg)](https://www.npmjs.com/package/docmarrow)
+[![license: AGPL-3.0-or-later](https://img.shields.io/npm/l/docmarrow.svg)](./LICENSE)
+
+> Convert **PDF, Word (DOCX), Excel (XLSX), PowerPoint (PPTX) and HTML** to clean
+> **Markdown** or **JSON** for **RAG / LLM** pipelines — in pure TypeScript, with
+> no Python and no external services.
+
 DocMarrow turns a **PDF, DOCX, XLSX, PPTX or HTML** file into clean **Markdown**,
 a structured **JSON** content tree, and **RAG-ready chunks** — reconstructing
 reading order, multi-column flow, headings, lists, tables, code and quotes
