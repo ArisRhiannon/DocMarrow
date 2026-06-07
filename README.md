@@ -4,10 +4,11 @@
 
 _No Python, no servers — layout-aware parsing that runs in Node, the browser and edge._
 
-[![npm version](https://img.shields.io/npm/v/docmarrow.svg)](https://www.npmjs.com/package/docmarrow)
+[![npm version](https://img.shields.io/npm/v/docmarrow?color=cb3837&logo=npm)](https://www.npmjs.com/package/docmarrow)
+[![npm downloads](https://img.shields.io/npm/dm/docmarrow?color=cb3837)](https://www.npmjs.com/package/docmarrow)
 [![CI](https://github.com/ArisRhiannon/DocMarrow/actions/workflows/ci.yml/badge.svg)](https://github.com/ArisRhiannon/DocMarrow/actions/workflows/ci.yml)
-[![types: TypeScript](https://img.shields.io/npm/types/docmarrow.svg)](https://www.npmjs.com/package/docmarrow)
-[![license: AGPL-3.0-or-later](https://img.shields.io/npm/l/docmarrow.svg)](./LICENSE)
+[![types: TypeScript](https://img.shields.io/npm/types/docmarrow?logo=typescript)](https://www.npmjs.com/package/docmarrow)
+[![license: AGPL-3.0-or-later](https://img.shields.io/npm/l/docmarrow)](./LICENSE)
 
 > Convert **PDF, Word (DOCX), Excel (XLSX), PowerPoint (PPTX) and HTML** to clean
 > **Markdown** or **JSON** for **RAG / LLM** pipelines — in pure TypeScript, with

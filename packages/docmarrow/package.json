@@ -1,6 +1,6 @@
 {
   "name": "docmarrow",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "DocMarrow - Pure TypeScript document parser for PDF → Markdown, JSON and RAG chunks.",
   "keywords": [
     "pdf",
