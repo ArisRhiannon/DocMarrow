@@ -14,6 +14,10 @@ Layout-aware parsing with no Python and no servers — runs in Node, the browser
 and edge runtimes. Optional OCR for scanned PDFs via
 [`@docmarrow/ocr`](https://www.npmjs.com/package/@docmarrow/ocr).
 
+**▶ [Try the live demo](https://arias.is-a.dev/demo/)** — drop a document and watch
+it become Markdown/JSON/chunks in your browser. Nothing is uploaded; the file never
+leaves your machine.
+
 ```bash
 npm install docmarrow
 ```

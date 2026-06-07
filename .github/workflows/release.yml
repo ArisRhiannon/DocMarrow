@@ -1,0 +1,43 @@
+name: release
+
+# Publishes `docmarrow` to npm with build provenance when a version tag is
+# pushed (e.g. `git tag v1.2.0 && git push --tags`). Provenance gives the package
+# a verifiable, tamper-evident link from the published tarball back to this repo
+# and commit — a supply-chain trust signal shown on the npm page.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # required for npm provenance (OIDC)
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: "https://registry.npmjs.org"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm typecheck
+      - run: pnpm test
+
+      - name: Publish docmarrow (with provenance)
+        run: pnpm --filter docmarrow publish --no-git-checks --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"

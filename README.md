@@ -185,6 +185,8 @@ the same pipeline later.
 
 ## Demos
 
+- **[Live demo](https://arias.is-a.dev/demo/)** — hosted, in-browser: drop a
+  PDF/DOCX/XLSX/PPTX/HTML and get Markdown/JSON/chunks. Nothing is uploaded.
 - **[`examples/`](./examples)** — runnable Node scripts (PDF, DOCX, chunking +
   custom tokenizer). `pnpm --filter @docmarrow/examples all`.
 - **[`playground/`](./playground)** — a Vite app that parses PDFs and DOCX
