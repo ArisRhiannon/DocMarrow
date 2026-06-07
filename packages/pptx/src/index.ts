@@ -24,14 +24,26 @@ export interface PptxAnalysis {
   warnings: string[];
 }
 
-/** Paragraph text (joining runs; line breaks become spaces) + outline level. */
-function paragraphInfo(p: XmlNode): { text: string; level: number } {
+/** Options for the PPTX backend. */
+export interface PptxOptions {
+  /**
+   * Extract speaker notes (`ppt/notesSlides/*`) and append them per slide as a
+   * quote block. Off by default: notes are presenter-private and add noise, so
+   * including them is a deliberate opt-in.
+   */
+  speakerNotes?: boolean;
+}
+
+/** Paragraph text (joining runs; line breaks become spaces) + outline level + ordered. */
+function paragraphInfo(p: XmlNode): { text: string; level: number; ordered: boolean } {
   const text = collectAllText(p, (t) => (t === "a:br" ? " " : undefined))
     .replace(/\s+/g, " ")
     .trim();
   const pPr = firstChild(p, "a:pPr");
   const level = pPr ? Number(attr(pPr, "lvl") ?? "0") || 0 : 0;
-  return { text, level };
+  // An auto-numbered bullet (a:buAutoNum) makes the item ordered; buChar/buNone/none stay bullets.
+  const ordered = pPr ? firstChild(pPr, "a:buAutoNum") !== undefined : false;
+  return { text, level, ordered };
 }
 
 /** The placeholder type of a shape (`title`, `ctrTitle`, `body`, …) if any. */
@@ -93,6 +105,33 @@ function buildSlideImages(
     const mime = mimeFromExt(path);
     return { ref: path, ...(mime ? { mime } : {}), ...(bytes ? { bytes } : {}) };
   };
+}
+
+/** Resolve the notesSlide part linked from a slide's relationships, if any. */
+function findNotesTarget(relsXml: string, baseDir: string): string | undefined {
+  const rels = deepFirst(parseXml(relsXml), "Relationships");
+  for (const rel of rels ? childrenNamed(rels, "Relationship") : []) {
+    const target = attr(rel, "Target");
+    if (target && /notesSlide/i.test(attr(rel, "Type") ?? "")) return resolveRel(baseDir, target);
+  }
+  return undefined;
+}
+
+/** Text of a notesSlide's body placeholder (the speaker notes), paragraphs joined. */
+function extractNotes(xml: string): string {
+  const notes = deepFirst(parseXml(xml), "p:notes");
+  const spTree = notes ? deepFirst(childrenOf(notes), "p:spTree") : undefined;
+  if (!spTree) return "";
+  for (const sp of childrenOf(spTree)) {
+    if (tagName(sp) !== "p:sp" || placeholderType(sp) !== "body") continue;
+    const tx = firstChild(sp, "p:txBody");
+    if (!tx) continue;
+    return childrenNamed(tx, "a:p")
+      .map((p) => paragraphInfo(p).text)
+      .filter(Boolean)
+      .join("\n");
+  }
+  return "";
 }
 
 /** Build a FigureBlock from a `p:pic` shape, or null if its image is missing. */
@@ -195,10 +234,14 @@ function slideBlocks(xml: string, slideNumber: number, images: ImageResolver): B
     // a free text box reads as a paragraph.
     const asList = paras.length >= 2 || paras.some((p) => p.level > 0);
     if (asList) {
-      const items: ListItemNode[] = paras.map((p) => ({ text: p.text, level: p.level }));
+      const items: ListItemNode[] = paras.map((p) => ({
+        text: p.text,
+        level: p.level,
+        ordered: p.ordered,
+      }));
       blocks.push({
         type: "list",
-        ordered: false,
+        ordered: paras.some((p) => p.ordered),
         items,
         page: 1,
         bbox: { ...ZERO_BBOX },
@@ -274,7 +317,7 @@ function coreTitle(xml: string | undefined): string | undefined {
  * level-1 heading (its title, or "Slide N"), then its body text (bulleted body
  * placeholders become lists) and any tables, in presentation order. Pure JS.
  */
-export function analyzePptx(bytes: Uint8Array): PptxAnalysis {
+export function analyzePptx(bytes: Uint8Array, options: PptxOptions = {}): PptxAnalysis {
   let parts: Map<string, string>;
   try {
     parts = readXmlParts(bytes);
@@ -298,8 +341,25 @@ export function analyzePptx(bytes: Uint8Array): PptxAnalysis {
     const slash = path.lastIndexOf("/");
     const dir = path.slice(0, slash + 1);
     const file = path.slice(slash + 1);
-    const images = buildSlideImages(parts.get(`${dir}_rels/${file}.rels`), media, dir);
-    blocks.push(...slideBlocks(xml, i + 1, images));
+    const relsXml = parts.get(`${dir}_rels/${file}.rels`);
+    const images = buildSlideImages(relsXml, media, dir);
+    const slideBs = slideBlocks(xml, i + 1, images);
+
+    if (options.speakerNotes && relsXml) {
+      const notesPath = findNotesTarget(relsXml, dir);
+      const notesXml = notesPath ? parts.get(notesPath) : undefined;
+      const notes = notesXml ? extractNotes(notesXml) : "";
+      if (notes) {
+        slideBs.push({
+          type: "quote",
+          text: notes,
+          page: 1,
+          bbox: { ...ZERO_BBOX },
+          confidence: PPTX_CONFIDENCE,
+        });
+      }
+    }
+    blocks.push(...slideBs);
   });
 
   const title = coreTitle(parts.get("docProps/core.xml"));

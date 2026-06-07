@@ -37,3 +37,24 @@ describe("HTML <img> → FigureBlock", () => {
     expect(figs(`<body><img alt="broken"></body>`)).toHaveLength(0);
   });
 });
+
+describe("HTML inline <svg> → FigureBlock", () => {
+  it("captures an svg presented as an image (aria-label) with its markup as bytes", () => {
+    const [f] = figs(`<body><svg role="img" aria-label="Pie chart"><path d="M0 0"/></svg></body>`);
+    expect(f).toMatchObject({ type: "figure", ref: "inline-svg", mime: "image/svg+xml", alt: "Pie chart" });
+    expect(new TextDecoder().decode(f!.bytes)).toContain("<svg");
+  });
+
+  it("uses a <title> child as alt", () => {
+    const [f] = figs(`<body><svg width="300" height="200"><title>Org chart</title><rect/></svg></body>`);
+    expect(f).toMatchObject({ type: "figure", alt: "Org chart" });
+  });
+
+  it("captures a sizable svg even without labels", () => {
+    expect(figs(`<body><svg width="200" height="120"><rect/></svg></body>`)).toHaveLength(1);
+  });
+
+  it("skips a small decorative icon svg", () => {
+    expect(figs(`<body><svg width="16" height="16"><path d="M0 0"/></svg></body>`)).toHaveLength(0);
+  });
+});

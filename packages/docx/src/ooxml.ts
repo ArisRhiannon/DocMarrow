@@ -355,7 +355,7 @@ function foldBlocks(items: Item[]): Block[] {
       while (i < items.length) {
         const cur = items[i]!;
         if (cur.kind !== "list" || cur.numId !== numId) break;
-        listItems.push({ text: cur.text, level: cur.level });
+        listItems.push({ text: cur.text, level: cur.level, ordered: cur.ordered });
         ordered = ordered || cur.ordered;
         i++;
       }

@@ -1,16 +1,20 @@
-import type { Block } from "@docmarrow/core";
+import type { Block, FigureBlock } from "@docmarrow/core";
 import {
   attr,
   childrenNamed,
   childrenOf,
   collectAllText,
+  deepAll,
   deepFirst,
   firstChild,
+  mimeFromExt,
   parseXml,
+  readBinaryEntries,
   readXmlParts,
   textOf,
   type XmlNode,
 } from "@docmarrow/ooxml";
+import { formatNumeric, parseStyles, type Styles } from "./format.js";
 
 const ZERO_BBOX = { x: 0, y: 0, width: 0, height: 0 } as const;
 const XLSX_CONFIDENCE = 0.95;
@@ -39,7 +43,7 @@ function parseSharedStrings(xml: string | undefined): string[] {
 }
 
 /** Resolve a cell's display text from its type and value. */
-function cellText(cell: XmlNode, shared: string[]): string {
+function cellText(cell: XmlNode, shared: string[], styles: Styles): string {
   const type = attr(cell, "t");
   if (type === "inlineStr") {
     const is = firstChild(cell, "is");
@@ -53,12 +57,17 @@ function cellText(cell: XmlNode, shared: string[]): string {
     return Number.isInteger(idx) ? (shared[idx] ?? "") : "";
   }
   if (type === "b") return raw === "1" ? "TRUE" : "FALSE";
-  // "str" (formula result), numbers, dates: use the stored value as-is.
+  // Numbers/dates (no type or "n") get number-format applied (dates, percent);
+  // a "str" formula result is already text and is used as-is.
+  if (type === undefined || type === "n") {
+    const s = attr(cell, "s");
+    return formatNumeric(raw, s !== undefined ? Number(s) : undefined, styles);
+  }
   return raw;
 }
 
 /** Build a compact row-major grid (trimmed to the used range) for one sheet. */
-function sheetGrid(xml: string, shared: string[]): string[][] {
+function sheetGrid(xml: string, shared: string[], styles: Styles): string[][] {
   const ws = deepFirst(parseXml(xml), "worksheet");
   const sheetData = ws ? firstChild(ws, "sheetData") : undefined;
   if (!sheetData) return [];
@@ -72,7 +81,7 @@ function sheetGrid(xml: string, shared: string[]): string[][] {
       const pos = ref ? parseRef(ref) : null;
       const col = pos ? pos.col : colOrder;
       const r = pos ? pos.row : rowIndex;
-      const text = cellText(c, shared);
+      const text = cellText(c, shared, styles);
       if (text !== "") cells.push({ col, row: r, text });
     });
   });
@@ -87,6 +96,81 @@ function sheetGrid(xml: string, shared: string[]): string[][] {
   );
   for (const cell of cells) grid[cell.row - minRow]![cell.col - minCol] = cell.text;
   return grid;
+}
+
+// ---------------------------------------------------------------------------
+// Images / figures (worksheet -> drawing -> media, via two relationship hops)
+// ---------------------------------------------------------------------------
+
+const dirOf = (path: string): string => path.slice(0, path.lastIndexOf("/") + 1);
+
+/** Resolve an OPC relative target against a part's base directory. */
+function resolveRel(baseDir: string, target: string): string {
+  if (target.startsWith("/")) return target.slice(1);
+  const out: string[] = [];
+  for (const seg of (baseDir + target).split("/")) {
+    if (seg === "..") out.pop();
+    else if (seg !== "." && seg !== "") out.push(seg);
+  }
+  return out.join("/");
+}
+
+/** Parse a part's `.rels` sidecar into an id -> target map. */
+function relsMap(parts: Map<string, string>, partPath: string): Map<string, string> {
+  const relsPath = `${dirOf(partPath)}_rels/${partPath.slice(partPath.lastIndexOf("/") + 1)}.rels`;
+  const map = new Map<string, string>();
+  const xml = parts.get(relsPath);
+  if (!xml) return map;
+  const rels = deepFirst(parseXml(xml), "Relationships");
+  for (const rel of rels ? childrenNamed(rels, "Relationship") : []) {
+    const id = attr(rel, "Id");
+    const target = attr(rel, "Target");
+    if (id && target) map.set(id, target);
+  }
+  return map;
+}
+
+/** Pictures embedded on a sheet via its drawing part, in document order. */
+function sheetFigures(
+  parts: Map<string, string>,
+  media: Map<string, Uint8Array>,
+  sheetPath: string,
+  sheetXml: string,
+): FigureBlock[] {
+  const ws = deepFirst(parseXml(sheetXml), "worksheet");
+  const drawingEl = ws ? firstChild(ws, "drawing") : undefined;
+  const rid = drawingEl ? attr(drawingEl, "r:id") : undefined;
+  if (!rid) return [];
+  const drawingTarget = relsMap(parts, sheetPath).get(rid);
+  if (!drawingTarget) return [];
+  const drawingPath = resolveRel(dirOf(sheetPath), drawingTarget);
+  const drawingXml = parts.get(drawingPath);
+  if (!drawingXml) return [];
+
+  const drawingRels = relsMap(parts, drawingPath);
+  const out: FigureBlock[] = [];
+  for (const pic of deepAll(parseXml(drawingXml), "xdr:pic")) {
+    const blip = deepFirst([pic], "a:blip");
+    const embed = blip ? (attr(blip, "r:embed") ?? attr(blip, "r:link")) : undefined;
+    const target = embed ? drawingRels.get(embed) : undefined;
+    if (!target) continue;
+    const path = resolveRel(dirOf(drawingPath), target);
+    const bytes = media.get(path);
+    const mime = mimeFromExt(path);
+    const cNvPr = deepFirst([pic], "xdr:cNvPr");
+    const alt = cNvPr ? (attr(cNvPr, "descr") ?? attr(cNvPr, "name") ?? "").replace(/\s+/g, " ").trim() : "";
+    out.push({
+      type: "figure",
+      alt,
+      ref: path,
+      ...(mime ? { mime } : {}),
+      ...(bytes ? { bytes } : {}),
+      page: 1,
+      bbox: { ...ZERO_BBOX },
+      confidence: XLSX_CONFIDENCE,
+    });
+  }
+  return out;
 }
 
 interface SheetRef {
@@ -161,14 +245,22 @@ export function analyzeXlsx(bytes: Uint8Array): XlsxAnalysis {
   }
 
   const shared = parseSharedStrings(parts.get("xl/sharedStrings.xml"));
+  const styles = parseStyles(parts.get("xl/styles.xml"));
   const sheets = resolveSheets(parts);
+  let media = new Map<string, Uint8Array>();
+  try {
+    media = readBinaryEntries(bytes, (name) => name.startsWith("xl/media/"));
+  } catch {
+    // No media or unreadable; figures simply won't carry bytes.
+  }
 
   const blocks: Block[] = [];
   for (const sheet of sheets) {
     const xml = parts.get(sheet.path);
     if (!xml) continue;
-    const grid = sheetGrid(xml, shared);
-    if (grid.length === 0) continue;
+    const grid = sheetGrid(xml, shared, styles);
+    const figures = sheetFigures(parts, media, sheet.path, xml);
+    if (grid.length === 0 && figures.length === 0) continue;
     blocks.push({
       type: "heading",
       level: 2,
@@ -177,13 +269,16 @@ export function analyzeXlsx(bytes: Uint8Array): XlsxAnalysis {
       bbox: { ...ZERO_BBOX },
       confidence: XLSX_CONFIDENCE,
     });
-    blocks.push({
-      type: "table",
-      rows: grid,
-      page: 1,
-      bbox: { ...ZERO_BBOX },
-      confidence: XLSX_CONFIDENCE,
-    });
+    if (grid.length > 0) {
+      blocks.push({
+        type: "table",
+        rows: grid,
+        page: 1,
+        bbox: { ...ZERO_BBOX },
+        confidence: XLSX_CONFIDENCE,
+      });
+    }
+    for (const fig of figures) blocks.push(fig);
   }
 
   const title = coreTitle(parts.get("docProps/core.xml"));

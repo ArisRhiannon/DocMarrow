@@ -40,11 +40,13 @@ function renderBlock(block: Block): string {
       return block.items
         .map((item) => {
           const indent = "  ".repeat(item.level);
-          if (block.ordered) {
-            counters.length = item.level + 1;
+          const ordered = item.ordered ?? block.ordered;
+          if (ordered) {
             counters[item.level] = (counters[item.level] ?? 0) + 1;
+            counters.length = item.level + 1; // reset deeper levels
             return `${indent}${counters[item.level]}. ${item.text}`;
           }
+          counters.length = item.level + 1; // a bullet still resets deeper counters
           return `${indent}- ${item.text}`;
         })
         .join("\n");

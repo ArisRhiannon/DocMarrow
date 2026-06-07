@@ -45,6 +45,11 @@ export interface ParseOptions extends AnalyzeOptions {
    * chunks). Mirrors `ocr`: the core ships no describer, keeping it dependency-free.
    */
   describeImage?: ImageDescriber;
+  /**
+   * PPTX only: also extract speaker notes (`ppt/notesSlides/*`), appended per
+   * slide as a quote block. Off by default (notes are presenter-private / noisy).
+   */
+  speakerNotes?: boolean;
 }
 
 /** Parsed document with multiple synchronised representations. */
@@ -205,7 +210,7 @@ export async function parseDocument(
         : format === "xlsx"
           ? analyzeXlsx(bytes)
           : format === "pptx"
-            ? analyzePptx(bytes)
+            ? analyzePptx(bytes, { speakerNotes: options.speakerNotes ?? false })
             : analyzeHtml(bytes);
     blocks = analyzed.blocks;
     pageBlocks = [blocks];

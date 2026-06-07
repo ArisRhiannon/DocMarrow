@@ -42,13 +42,13 @@ describe("analyzeHtml", () => {
     expect(p.text).toBe("An intro paragraph with inline markup.");
   });
 
-  it("builds a nested list (ul with an inner ol)", () => {
+  it("builds a nested list (ul with an inner ol) with per-item ordered flags", () => {
     const list = find("list")[0]!;
-    expect(list.items.map((i) => `${i.level}:${i.text}`)).toEqual([
-      "0:First item",
-      "0:Second item",
-      "1:Nested a",
-      "1:Nested b",
+    expect(list.items.map((i) => `${i.level}:${i.ordered ? "o" : "u"}:${i.text}`)).toEqual([
+      "0:u:First item",
+      "0:u:Second item",
+      "1:o:Nested a",
+      "1:o:Nested b",
     ]);
   });
 
@@ -74,9 +74,10 @@ describe("analyzeHtml", () => {
     expect(md).toContain("# Main Heading");
     expect(md).toContain("## Section");
     expect(md).toContain("- First item");
-    // A single list block has one `ordered` flag (like the DOCX model), so the
-    // nested <ol> inside the outer <ul> renders with the outer bullet style.
-    expect(md).toContain("  - Nested a");
+    // The nested <ol> inside the outer <ul> now renders as an ordered sublist
+    // (per-item ordered flag), not inheriting the outer bullet style.
+    expect(md).toContain("  1. Nested a");
+    expect(md).toContain("  2. Nested b");
     expect(md).toContain("| Name | Age |");
     expect(md).toContain("> To be or not to be.");
   });
