@@ -1,6 +1,6 @@
 import { strToU8, zipSync } from "fflate";
 import { describe, expect, it } from "vitest";
-import { toMarkdown, type Block } from "@docparse/core";
+import { toMarkdown, type Block } from "@docmarrow/core";
 import { analyzeDocx } from "../src/index.js";
 
 const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';

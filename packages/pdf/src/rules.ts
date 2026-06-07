@@ -1,5 +1,5 @@
 import { OPS } from "pdfjs-dist/legacy/build/pdf.mjs";
-import type { Rule } from "@docparse/core";
+import type { Rule } from "@docmarrow/core";
 
 /** A 2D affine matrix [a, b, c, d, e, f] (PDF convention, row-vector). */
 type Matrix = [number, number, number, number, number, number];

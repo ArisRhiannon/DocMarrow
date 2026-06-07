@@ -13,7 +13,7 @@ async function makePdf(): Promise<Uint8Array> {
   page.drawText("Quarterly Report", { x: 50, y: 790, size: 24, font: bold, color: black });
   const lines = [
     "This paragraph spans two lines so we can verify that wrapped",
-    "lines are merged back into a single paragraph by docparse.",
+    "lines are merged back into a single paragraph by docmarrow.",
   ];
   lines.forEach((t, i) =>
     page.drawText(t, { x: 50, y: 740 - i * 16, size: 12, font: body, color: black }),

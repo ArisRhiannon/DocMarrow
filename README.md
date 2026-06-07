@@ -1,8 +1,10 @@
-# docparse-ts
+# DocMarrow
 
-**Layout-aware document parsing for RAG. TypeScript-native. No Python, no servers.**
+**Pure TypeScript document parser for PDF → Markdown, JSON and RAG chunks.**
 
-`docparse-ts` turns a **PDF or DOCX** into clean **Markdown**, a structured
+_No Python, no servers — layout-aware parsing that runs in Node, the browser and edge._
+
+DocMarrow turns a **PDF or DOCX** into clean **Markdown**, a structured
 **JSON** content tree, and **RAG-ready chunks** — reconstructing reading order,
 multi-column flow, headings, lists, tables, code and quotes instead of dumping a
 flat soup of text.
@@ -27,21 +29,21 @@ PDFs store *positions*, not *structure*: most JS parsers hand you a flat list of
 text runs, so tables collapse, multi-column pages interleave, and heading
 hierarchy is lost — which produces broken chunks and a worse RAG pipeline. DOCX
 does carry structure, but most JS tooling still flattens it. The strong document
-parsers (Docling, Marker, MarkItDown, Unstructured) are all Python. `docparse-ts`
+parsers (Docling, Marker, MarkItDown, Unstructured) are all Python. `docmarrow`
 brings layout-aware, structure-preserving parsing to the JS/TS ecosystem with one
 small dependency-light package.
 
 ## Install
 
 ```bash
-npm install docparse-ts
-# or: pnpm add docparse-ts / yarn add docparse-ts
+npm install docmarrow
+# or: pnpm add docmarrow / yarn add docmarrow
 ```
 
 ## Quickstart
 
 ```ts
-import { parseDocument } from "docparse-ts";
+import { parseDocument } from "docmarrow";
 import { readFile } from "node:fs/promises";
 
 // Format (PDF or DOCX) is autodetected from the bytes.
@@ -82,12 +84,12 @@ Block types: `heading`, `paragraph`, `list`, `table`, `code`, `quote`.
 ### CLI
 
 ```bash
-npx docparse-ts report.pdf -o report.md --json report.json --chunks chunks.json
-npx docparse-ts notes.docx -o notes.md
+npx docmarrow report.pdf -o report.md --json report.json --chunks chunks.json
+npx docmarrow notes.docx -o notes.md
 ```
 
 ```
-docparse-ts <file.pdf|file.docx> [options]
+docmarrow <file.pdf|file.docx> [options]
   -o, --out <file>       Write Markdown to <file> (default: stdout)
       --json <file>      Write the JSON content tree
       --chunks <file>    Write RAG chunks (JSON)
@@ -104,7 +106,7 @@ docparse-ts <file.pdf|file.docx> [options]
 
 1. **Extraction** — `pdfjs-dist` yields positioned text runs per page, converted
    to a top-left coordinate convention, with bold/italic/monospace resolved from
-   the embedded fonts (`@docparse/pdf`).
+   the embedded fonts (`@docmarrow/pdf`).
 2. **Segmentation & reading order** — items are split into columns by detecting
    vertical whitespace gutters, with a heuristic that distinguishes genuine text
    columns from aligned grids (tables); full-width titles/footers split the page
@@ -121,7 +123,7 @@ docparse-ts <file.pdf|file.docx> [options]
    (italic, inset), and paragraphs (wrapped lines merged with soft-hyphen joining).
 
 **DOCX** — Word files carry explicit structure, so the OOXML backend
-(`@docparse/docx`) maps it directly to the same block model without geometry:
+(`@docmarrow/docx`) maps it directly to the same block model without geometry:
 paragraph styles → headings/quotes/code, `w:numPr` + `numbering.xml` →
 ordered/unordered nested lists, `w:tbl` → tables, `docProps/core.xml` → title.
 
@@ -137,13 +139,13 @@ others are internal workspace modules bundled into it at build time.
 
 | Package | Published as | Purpose |
 | --- | --- | --- |
-| `packages/docparse` | **`docparse-ts`** (npm) | Main entry — `parseDocument()` + `docparse-ts` CLI |
-| `@docparse/core` | bundled | Layout, structure, tables, serializers, chunker (pure) |
-| `@docparse/pdf` | bundled | `pdfjs-dist` extraction backend |
-| `@docparse/docx` | bundled | OOXML (DOCX) structure backend |
+| `packages/docmarrow` | **`docmarrow`** (npm) | Main entry — `parseDocument()` + `docmarrow` CLI |
+| `@docmarrow/core` | bundled | Layout, structure, tables, serializers, chunker (pure) |
+| `@docmarrow/pdf` | bundled | `pdfjs-dist` extraction backend |
+| `@docmarrow/docx` | bundled | OOXML (DOCX) structure backend |
 
-`@docparse/ocr` is an **optional, opt-in** package (tesseract.js) and is **not**
-bundled into `docparse-ts`, so the core stays pure JS with no native/heavy deps.
+`@docmarrow/ocr` is an **optional, opt-in** package (tesseract.js) and is **not**
+bundled into `docmarrow`, so the core stays pure JS with no native/heavy deps.
 
 The core is backend-agnostic: it analyses `PageInput[]` (positioned items) for
 PDF, and accepts pre-structured `Block[]` from DOCX, so more backends can feed
@@ -152,27 +154,27 @@ the same pipeline later.
 ## Demos
 
 - **[`examples/`](./examples)** — runnable Node scripts (PDF, DOCX, chunking +
-  custom tokenizer). `pnpm --filter @docparse/examples all`.
+  custom tokenizer). `pnpm --filter @docmarrow/examples all`.
 - **[`playground/`](./playground)** — a Vite app that parses PDFs and DOCX
   **entirely in the browser** (no upload, no server), verified end-to-end in a
-  headless Chromium. `pnpm --filter @docparse/playground dev`.
+  headless Chromium. `pnpm --filter @docmarrow/playground dev`.
 
 ## OCR (optional, opt-in)
 
-Scanned/image-only PDFs have no text layer. The optional `@docparse/ocr` package
+Scanned/image-only PDFs have no text layer. The optional `@docmarrow/ocr` package
 (backed by [tesseract.js](https://github.com/naptha/tesseract.js)) rasterizes
 those pages and recognizes the text, feeding it into the normal pipeline. It is
-**not** bundled into `docparse-ts`, so the core stays pure JS — you opt in:
+**not** bundled into `docmarrow`, so the core stays pure JS — you opt in:
 
 ```bash
-npm install @docparse/ocr
+npm install @docmarrow/ocr
 # Node also needs a canvas to rasterize pages:
 npm install @napi-rs/canvas
 ```
 
 ```ts
-import { parseDocument } from "docparse-ts";
-import { createOcrEngine } from "@docparse/ocr";
+import { parseDocument } from "docmarrow";
+import { createOcrEngine } from "@docmarrow/ocr";
 
 const doc = await parseDocument(bytes, { ocr: createOcrEngine({ lang: "eng" }) });
 // Pages with a text layer are used as-is; only empty (scanned) pages are OCR'd.
@@ -194,7 +196,7 @@ What works today, verified by the test suite and on real generated documents:
   running header/footer removal; ruled (vector-line) + geometric tables.
 - **DOCX** → headings, ordered/unordered nested lists, tables, code, quotes,
   paragraphs, and document title, from the document's own styles and numbering.
-- **Scanned PDFs** → optional OCR via `@docparse/ocr` (see below).
+- **Scanned PDFs** → optional OCR via `@docmarrow/ocr` (see below).
 - Document `meta` with `warnings` (e.g. a page with no extractable text).
 - Pluggable token counter for chunking; ESM + CJS builds; strict types; Node ≥ 20;
   runs in the browser.
@@ -203,7 +205,7 @@ Known limitations (deliberately stated):
 
 - **OCR is opt-in, not built in.** The core does no OCR, so scanned/image-only
   pages yield no text and are flagged in `meta.warnings` (`meta.hasText` is
-  `false`). Add `@docparse/ocr` to recognize them (see below).
+  `false`). Add `@docmarrow/ocr` to recognize them (see below).
 - **PDF tables**: ruled tables use the real border lines (multi-word cells kept
   intact); merged/spanning cells are approximated and rotated tables are not
   supported. Borderless tables fall back to whitespace-alignment heuristics.
@@ -217,7 +219,7 @@ Known limitations (deliberately stated):
 
 ## Benchmark
 
-`docparse-ts` ships a reproducible **timing** harness (no quality/accuracy
+`docmarrow` ships a reproducible **timing** harness (no quality/accuracy
 claims — that needs a labelled corpus this repo does not have):
 
 ```bash

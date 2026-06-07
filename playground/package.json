@@ -1,16 +1,16 @@
 {
-  "name": "@docparse/playground",
+  "name": "@docmarrow/playground",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "In-browser playground proving docparse-ts runs client-side (no server).",
+  "description": "In-browser playground proving docmarrow runs client-side (no server).",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --port 4317"
   },
   "dependencies": {
-    "docparse-ts": "workspace:*",
+    "docmarrow": "workspace:*",
     "pdfjs-dist": "^4.10.38"
   },
   "devDependencies": {

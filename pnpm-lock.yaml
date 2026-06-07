@@ -29,9 +29,9 @@ importers:
 
   bench:
     dependencies:
-      docparse-ts:
+      docmarrow:
         specifier: workspace:*
-        version: link:../packages/docparse
+        version: link:../packages/docmarrow
     devDependencies:
       fflate:
         specifier: ^0.8.3
@@ -42,9 +42,9 @@ importers:
 
   examples:
     dependencies:
-      docparse-ts:
+      docmarrow:
         specifier: workspace:*
-        version: link:../packages/docparse
+        version: link:../packages/docmarrow
     devDependencies:
       fflate:
         specifier: ^0.8.3
@@ -55,7 +55,7 @@ importers:
 
   packages/core: {}
 
-  packages/docparse:
+  packages/docmarrow:
     dependencies:
       fast-xml-parser:
         specifier: ^5.8.0
@@ -67,19 +67,19 @@ importers:
         specifier: ^4.10.38
         version: 4.10.38
     devDependencies:
-      '@docparse/core':
+      '@docmarrow/core':
         specifier: workspace:*
         version: link:../core
-      '@docparse/docx':
+      '@docmarrow/docx':
         specifier: workspace:*
         version: link:../docx
-      '@docparse/pdf':
+      '@docmarrow/pdf':
         specifier: workspace:*
         version: link:../pdf
 
   packages/docx:
     dependencies:
-      '@docparse/core':
+      '@docmarrow/core':
         specifier: workspace:*
         version: link:../core
       fast-xml-parser:
@@ -91,7 +91,7 @@ importers:
 
   packages/ocr:
     dependencies:
-      '@docparse/core':
+      '@docmarrow/core':
         specifier: workspace:*
         version: link:../core
       pdfjs-dist:
@@ -111,7 +111,7 @@ importers:
 
   packages/pdf:
     dependencies:
-      '@docparse/core':
+      '@docmarrow/core':
         specifier: workspace:*
         version: link:../core
       pdfjs-dist:
@@ -120,9 +120,9 @@ importers:
 
   playground:
     dependencies:
-      docparse-ts:
+      docmarrow:
         specifier: workspace:*
-        version: link:../packages/docparse
+        version: link:../packages/docmarrow
       pdfjs-dist:
         specifier: ^4.10.38
         version: 4.10.38

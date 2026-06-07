@@ -1,5 +1,5 @@
 /**
- * Core data model for docparse.
+ * Core data model for docmarrow.
  *
  * Coordinate convention (used everywhere downstream of a backend):
  *   - Origin is the TOP-LEFT of the page.
@@ -125,7 +125,7 @@ export type Block =
 
 /**
  * A pluggable OCR engine. Implementations live in optional packages (e.g.
- * `@docparse/ocr`, which wraps tesseract.js) so the core stays pure JS with no
+ * `@docmarrow/ocr`, which wraps tesseract.js) so the core stays pure JS with no
  * heavy/native dependencies. When supplied to `parseDocument`, PDF pages that
  * yield no extractable text (scanned/image-only) are rasterized and OCR'd, and
  * the recognized words are fed into the normal layout pipeline.

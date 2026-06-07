@@ -1,6 +1,6 @@
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { createWorker } from "tesseract.js";
-import type { OcrEngine, TextItem } from "@docparse/core";
+import type { OcrEngine, TextItem } from "@docmarrow/core";
 import { loadRaster } from "./canvas.js";
 
 export interface OcrEngineOptions {
@@ -39,7 +39,7 @@ function collectWords(data: unknown): TWord[] {
 }
 
 /**
- * Create a tesseract.js-backed {@link OcrEngine} for docparse-ts.
+ * Create a tesseract.js-backed {@link OcrEngine} for docmarrow.
  *
  * Pass it to `parseDocument(bytes, { ocr })`; scanned/image-only PDF pages are
  * rendered to a bitmap and OCR'd, and the recognized words (with positions) are

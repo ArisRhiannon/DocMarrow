@@ -1,7 +1,7 @@
 {
-  "name": "@docparse/docx",
+  "name": "@docmarrow/docx",
   "version": "1.0.0",
-  "description": "DOCX (OOXML) backend for docparse: structure-preserving extraction to core blocks.",
+  "description": "DOCX (OOXML) backend for docmarrow: structure-preserving extraction to core blocks.",
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -23,13 +23,13 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@docparse/core": "workspace:*",
+    "@docmarrow/core": "workspace:*",
     "fast-xml-parser": "^5.8.0",
     "fflate": "^0.8.3"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ArisRhiannon/docparse-ts.git",
+    "url": "https://github.com/ArisRhiannon/DocMarrow.git",
     "directory": "packages/docx"
   },
   "private": true

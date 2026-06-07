@@ -9,7 +9,7 @@ import { createOcrEngine } from "../src/index.js";
  * and downloads the tesseract language model (~15MB) on first run — too heavy
  * for default CI. Run locally with:
  *
- *   DOCPARSE_OCR_TEST=1 pnpm --filter @docparse/ocr exec vitest run
+ *   DOCPARSE_OCR_TEST=1 pnpm --filter @docmarrow/ocr exec vitest run
  */
 const RUN = process.env.DOCPARSE_OCR_TEST === "1";
 

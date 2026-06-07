@@ -1,7 +1,7 @@
 {
-  "name": "@docparse/ocr",
+  "name": "@docmarrow/ocr",
   "version": "1.0.0",
-  "description": "Optional OCR engine for docparse-ts (tesseract.js). Rasterizes scanned PDF pages and recognizes text. Opt-in — not bundled into docparse-ts, so the core stays pure JS.",
+  "description": "Optional OCR engine for docmarrow (tesseract.js). Rasterizes scanned PDF pages and recognizes text. Opt-in — not bundled into docmarrow, so the core stays pure JS.",
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -23,7 +23,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@docparse/core": "workspace:*",
+    "@docmarrow/core": "workspace:*",
     "pdfjs-dist": "^4.10.38",
     "tesseract.js": "^7.0.0"
   },
@@ -35,7 +35,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ArisRhiannon/docparse-ts.git",
+    "url": "https://github.com/ArisRhiannon/DocMarrow.git",
     "directory": "packages/ocr"
   },
   "private": true

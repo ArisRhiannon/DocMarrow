@@ -1,14 +1,14 @@
 {
-  "name": "@docparse/bench",
+  "name": "@docmarrow/bench",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Reproducible timing benchmark for docparse-ts (throughput/latency only).",
+  "description": "Reproducible timing benchmark for docmarrow (throughput/latency only).",
   "scripts": {
     "start": "node bench.mjs"
   },
   "dependencies": {
-    "docparse-ts": "workspace:*"
+    "docmarrow": "workspace:*"
   },
   "devDependencies": {
     "fflate": "^0.8.3",

@@ -7,5 +7,5 @@ export default defineConfig({
   clean: true,
   sourcemap: true,
   target: "es2022",
-  external: ["@docparse/core", "tesseract.js", "pdfjs-dist", "@napi-rs/canvas"],
+  external: ["@docmarrow/core", "tesseract.js", "pdfjs-dist", "@napi-rs/canvas"],
 });

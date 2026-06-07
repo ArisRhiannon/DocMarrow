@@ -1,6 +1,6 @@
 # Commercial License
 
-`docparse` is dual-licensed.
+`docmarrow` is dual-licensed.
 
 ## Open source — AGPL-3.0-or-later
 
@@ -10,7 +10,7 @@ The open-source edition (everything in this repository) is licensed under the
 The AGPL's network clause (section 13) is the key term to understand: if you run
 a modified version of this software to provide a service over a network, you
 must offer the complete corresponding source of your modified version to the
-users of that service. Linking docparse into a larger application also brings
+users of that service. Linking docmarrow into a larger application also brings
 that application under the AGPL's copyleft terms.
 
 For many open-source projects and internal tools this is perfectly fine.
@@ -18,7 +18,7 @@ For many open-source projects and internal tools this is perfectly fine.
 ## Commercial license
 
 If you cannot or do not want to comply with the AGPL — for example, you are
-embedding docparse in a closed-source product or SaaS and do not wish to release
+embedding docmarrow in a closed-source product or SaaS and do not wish to release
 your application's source — a commercial license is available. It grants the
 same software under terms that do not require you to open-source your own code.
 

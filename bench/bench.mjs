@@ -1,6 +1,6 @@
-// Reproducible timing benchmark for docparse-ts.
+// Reproducible timing benchmark for docmarrow.
 //
-//   pnpm build && pnpm --filter @docparse/bench start
+//   pnpm build && pnpm --filter @docmarrow/bench start
 //
 // This measures ONLY throughput/latency of the parse pipeline on synthetic
 // fixtures, single-threaded, on whatever machine you run it on. It deliberately
@@ -10,7 +10,7 @@
 import { performance } from "node:perf_hooks";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import { strToU8, zipSync } from "fflate";
-import { parseDocument } from "docparse-ts";
+import { parseDocument } from "docmarrow";
 
 const ITER = Number(process.env.ITER ?? 40);
 const WARMUP = 5;
@@ -72,7 +72,7 @@ async function bench(label, bytes, pages) {
   );
 }
 
-console.log(`docparse-ts benchmark — Node ${process.version}, ${ITER} iterations (median + p95)\n`);
+console.log(`docmarrow benchmark — Node ${process.version}, ${ITER} iterations (median + p95)\n`);
 console.log("fixture                  median        p95         size            throughput");
 console.log("-".repeat(80));
 await bench("PDF 1 page", await makePdf(1), 1);

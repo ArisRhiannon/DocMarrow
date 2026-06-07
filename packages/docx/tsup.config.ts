@@ -7,5 +7,5 @@ export default defineConfig({
   clean: true,
   sourcemap: true,
   target: "es2022",
-  external: ["@docparse/core", "fflate", "fast-xml-parser"],
+  external: ["@docmarrow/core", "fflate", "fast-xml-parser"],
 });

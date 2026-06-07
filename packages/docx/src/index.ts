@@ -1,4 +1,4 @@
-import type { Block } from "@docparse/core";
+import type { Block } from "@docmarrow/core";
 import { coreTitle, documentToBlocks } from "./ooxml.js";
 import { readDocxParts } from "./unzip.js";
 
@@ -13,7 +13,7 @@ export interface DocxAnalysis {
 }
 
 /**
- * Parse DOCX (OOXML) bytes into docparse's core block model.
+ * Parse DOCX (OOXML) bytes into docmarrow's core block model.
  *
  * Unlike the PDF path, DOCX carries explicit structure (heading/quote/code
  * styles, list numbering, real tables), so blocks are produced directly without

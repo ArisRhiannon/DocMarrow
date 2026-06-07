@@ -1,23 +1,23 @@
-# @docparse/ocr
+# @docmarrow/ocr
 
-Optional OCR engine for [`docparse-ts`](https://github.com/ArisRhiannon/docparse-ts),
+Optional OCR engine for [`docmarrow`](https://github.com/ArisRhiannon/DocMarrow),
 backed by [tesseract.js](https://github.com/naptha/tesseract.js). It rasterizes
 scanned/image-only PDF pages and recognizes their text (with positions), which
-`docparse-ts` then runs through its normal layout pipeline.
+`docmarrow` then runs through its normal layout pipeline.
 
-**Opt-in by design.** This package is *not* bundled into `docparse-ts`: the core
+**Opt-in by design.** This package is *not* bundled into `docmarrow`: the core
 stays pure JS with no native/heavy dependencies. You install OCR only if you need
 it.
 
 ```bash
-npm install docparse-ts @docparse/ocr
+npm install docmarrow @docmarrow/ocr
 # Node also needs a canvas implementation to rasterize pages:
 npm install @napi-rs/canvas
 ```
 
 ```ts
-import { parseDocument } from "docparse-ts";
-import { createOcrEngine } from "@docparse/ocr";
+import { parseDocument } from "docmarrow";
+import { createOcrEngine } from "@docmarrow/ocr";
 
 const doc = await parseDocument(bytes, { ocr: createOcrEngine({ lang: "eng", scale: 3 }) });
 ```

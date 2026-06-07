@@ -1,4 +1,4 @@
-import type { Block, ListItemNode } from "@docparse/core";
+import type { Block, ListItemNode } from "@docmarrow/core";
 import {
   attr,
   childrenNamed,

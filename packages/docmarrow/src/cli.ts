@@ -3,10 +3,10 @@ import { readFile, writeFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import { parseDocument } from "./index.js";
 
-const HELP = `docparse-ts — layout-aware PDF/DOCX → Markdown/JSON/chunks
+const HELP = `docmarrow — layout-aware PDF/DOCX → Markdown/JSON/chunks
 
 Usage:
-  docparse-ts <file.pdf|file.docx> [options]
+  docmarrow <file.pdf|file.docx> [options]
 
 Options:
   -o, --out <file>       Write Markdown to <file> (default: stdout)
@@ -21,8 +21,8 @@ Options:
   -v, --version          Show version
 
 Example:
-  docparse-ts report.pdf -o report.md --json report.json
-  docparse-ts notes.docx -o notes.md
+  docmarrow report.pdf -o report.md --json report.json
+  docmarrow notes.docx -o notes.md
 `;
 
 async function main(): Promise<void> {
@@ -84,6 +84,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err: unknown) => {
-  process.stderr.write(`docparse-ts: ${err instanceof Error ? err.message : String(err)}\n`);
+  process.stderr.write(`docmarrow: ${err instanceof Error ? err.message : String(err)}\n`);
   process.exitCode = 1;
 });

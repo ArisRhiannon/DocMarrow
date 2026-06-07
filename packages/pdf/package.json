@@ -1,7 +1,7 @@
 {
-  "name": "@docparse/pdf",
+  "name": "@docmarrow/pdf",
   "version": "1.0.0",
-  "description": "pdfjs-dist backend for docparse: positioned text extraction per page.",
+  "description": "pdfjs-dist backend for docmarrow: positioned text extraction per page.",
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -23,12 +23,12 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@docparse/core": "workspace:*",
+    "@docmarrow/core": "workspace:*",
     "pdfjs-dist": "^4.10.38"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ArisRhiannon/docparse-ts.git",
+    "url": "https://github.com/ArisRhiannon/DocMarrow.git",
     "directory": "packages/pdf"
   },
   "private": true

@@ -1,5 +1,5 @@
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
-import type { PageInput, Rule, TextItem } from "@docparse/core";
+import type { PageInput, Rule, TextItem } from "@docmarrow/core";
 import { extractRules } from "./rules.js";
 
 /** Subset of a pdf.js text item we rely on. */
@@ -36,7 +36,7 @@ function styleFromName(name: string): { bold: boolean; italic: boolean; mono: bo
 /**
  * Extract positioned text from a PDF using pdf.js.
  *
- * Coordinates are converted to docparse's convention: top-left origin, `y`
+ * Coordinates are converted to docmarrow's convention: top-left origin, `y`
  * increasing downward. Returns one {@link PageInput} per page. Pure JS/WASM —
  * no native binaries.
  */

@@ -10,9 +10,9 @@ import {
   type ContentNode,
   type DocumentMeta,
   type OcrEngine,
-} from "@docparse/core";
-import { extractPdf } from "@docparse/pdf";
-import { analyzeDocx } from "@docparse/docx";
+} from "@docmarrow/core";
+import { extractPdf } from "@docmarrow/pdf";
+import { analyzeDocx } from "@docmarrow/docx";
 
 export type DocumentInput = Uint8Array | ArrayBuffer | ArrayBufferView;
 
@@ -27,7 +27,7 @@ export interface ParseOptions extends AnalyzeOptions {
   /** Password for encrypted PDFs. */
   password?: string;
   /**
-   * Optional OCR engine (e.g. from `@docparse/ocr`). When provided, PDF pages
+   * Optional OCR engine (e.g. from `@docmarrow/ocr`). When provided, PDF pages
    * with no extractable text (scanned/image-only) are OCR'd and fed into the
    * pipeline. Without it, such pages are reported in `meta.warnings`.
    */
@@ -84,7 +84,7 @@ export async function parseDocument(
 ): Promise<ParsedDocument> {
   if (options.mode === "boost") {
     throw new Error(
-      "mode: 'boost' requires an enterprise refiner (e.g. @docparse/vlm-boost), which is not " +
+      "mode: 'boost' requires an enterprise refiner (e.g. @docmarrow/vlm-boost), which is not " +
         "part of the open-source core. Use mode: 'fast' (default) or plug in a refiner.",
     );
   }
@@ -165,4 +165,4 @@ export type {
   ContentNode,
   DocumentMeta,
   OcrEngine,
-} from "@docparse/core";
+} from "@docmarrow/core";

@@ -1,10 +1,10 @@
 // Structure-aware RAG chunking, including a custom token counter.
 //
-//   pnpm --filter @docparse/examples chunks
+//   pnpm --filter @docmarrow/examples chunks
 //
 // By default `chunks()` uses a dependency-free word heuristic. Pass `countTokens`
 // to plug in a real model tokenizer (e.g. js-tiktoken's `enc.encode(t).length`).
-import { parseDocument } from "docparse-ts";
+import { parseDocument } from "docmarrow";
 import { makeSamplePdf } from "./_samples.mjs";
 
 const doc = await parseDocument(await makeSamplePdf());

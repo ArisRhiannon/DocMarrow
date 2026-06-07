@@ -1,11 +1,11 @@
-# @docparse/docx
+# @docmarrow/docx
 
-DOCX (OOXML) backend for [`docparse-ts`](https://github.com/ArisRhiannon/docparse-ts).
-Internal workspace package — bundled into the published `docparse-ts`, not
+DOCX (OOXML) backend for [`docmarrow`](https://github.com/ArisRhiannon/DocMarrow).
+Internal workspace package — bundled into the published `docmarrow`, not
 released on its own.
 
 Word `.docx` files carry explicit structure, so this backend maps it straight to
-docparse's `Block[]` model — no geometric layout analysis needed:
+docmarrow's `Block[]` model — no geometric layout analysis needed:
 
 - paragraph styles (`Heading1…`, `Title`, `Quote`, code/preformatted) → headings,
   quotes and code blocks; `w:outlineLvl` is used as a heading fallback
@@ -18,7 +18,7 @@ container and [`fast-xml-parser`](https://github.com/NaturalIntelligence/fast-xm
 to parse the OOXML — so it runs in Node, the browser and edge runtimes.
 
 ```ts
-import { analyzeDocx } from "@docparse/docx";
+import { analyzeDocx } from "@docmarrow/docx";
 
 const { blocks, title, warnings } = analyzeDocx(bytes);
 ```

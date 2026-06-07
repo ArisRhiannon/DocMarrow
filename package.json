@@ -1,8 +1,8 @@
 {
-  "name": "docparse-ts-monorepo",
+  "name": "docmarrow-monorepo",
   "version": "0.0.0",
   "private": true,
-  "description": "Layout-aware document parsing for RAG. TypeScript-native.",
+  "description": "DocMarrow — Pure TypeScript document parser for PDF → Markdown, JSON and RAG chunks.",
   "packageManager": "pnpm@9.15.9",
   "engines": {
     "node": ">=20"
@@ -15,7 +15,7 @@
     "clean": "pnpm -r exec rm -rf dist .turbo node_modules/.cache",
     "changeset": "changeset",
     "release": "pnpm build && changeset publish",
-    "bench": "pnpm --filter @docparse/bench start"
+    "bench": "pnpm --filter @docmarrow/bench start"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.10",

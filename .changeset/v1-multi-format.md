@@ -1,8 +1,8 @@
 ---
-"docparse-ts": minor
+"docmarrow": minor
 ---
 
-docparse-ts 1.0 — multi-format, richer structure, demos, benchmark.
+docmarrow 1.0 — multi-format, richer structure, demos, benchmark.
 
 Additions (backward-compatible; `parseDocument` keeps its shape and now also
 returns `meta`):
