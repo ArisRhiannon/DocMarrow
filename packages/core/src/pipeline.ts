@@ -3,7 +3,15 @@ import { dropRunningHeadFoot, segmentPage } from "./reading-order.js";
 import { structureLines } from "./structure.js";
 import { detectTables, type DetectedTable } from "./tables.js";
 import { detectRuledTables } from "./ruled-tables.js";
-import type { AnalysisResult, AnalyzeOptions, Block, PageInput } from "./types.js";
+import type {
+  AnalysisResult,
+  AnalyzeOptions,
+  BBox,
+  Block,
+  FigureBlock,
+  FigureRef,
+  PageInput,
+} from "./types.js";
 
 /**
  * Analyse extracted page content into structured blocks.
@@ -91,8 +99,38 @@ export function analyze(pages: PageInput[], options: AnalyzeOptions = {}): Analy
       buffer.push(line);
     }
     flush();
-    return blocks;
+    const figures = pages[pi]!.figures ?? [];
+    return figures.length ? weaveFigures(blocks, figures, page) : blocks;
   });
 
   return { blocks: pageBlocks.flat(), pages: pageBlocks, warnings };
+}
+
+const centerY = (b: BBox): number => b.y + b.height / 2;
+
+/**
+ * Insert backend-located figures into a page's already reading-ordered blocks
+ * by vertical position: each figure lands before the first block whose vertical
+ * centre is below it (else at the end). Heuristic, but keeps text order intact.
+ */
+function weaveFigures(blocks: Block[], figures: FigureRef[], page: number): Block[] {
+  const result = [...blocks];
+  const sorted = [...figures].sort((a, b) => centerY(a.bbox) - centerY(b.bbox));
+  for (const f of sorted) {
+    const fb: FigureBlock = {
+      type: "figure",
+      alt: f.alt ?? "",
+      ref: f.ref,
+      ...(f.mime ? { mime: f.mime } : {}),
+      ...(f.bytes ? { bytes: f.bytes } : {}),
+      page,
+      bbox: f.bbox,
+      confidence: 0.9,
+    };
+    const fy = centerY(f.bbox);
+    let idx = result.findIndex((b) => centerY(b.bbox) > fy);
+    if (idx < 0) idx = result.length;
+    result.splice(idx, 0, fb);
+  }
+  return result;
 }

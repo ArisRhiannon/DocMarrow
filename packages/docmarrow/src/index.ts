@@ -9,6 +9,8 @@ import {
   type ChunkOptions,
   type ContentNode,
   type DocumentMeta,
+  type FigureBlock,
+  type ImageDescriber,
   type OcrEngine,
 } from "@docmarrow/core";
 import { extractPdf } from "@docmarrow/pdf";
@@ -36,6 +38,13 @@ export interface ParseOptions extends AnalyzeOptions {
    * pipeline. Without it, such pages are reported in `meta.warnings`.
    */
   ocr?: OcrEngine;
+  /**
+   * Optional image describer (e.g. a vision-LLM caption service). When provided,
+   * every extracted figure with no source alt text is described and the caption
+   * is written into the figure (so it serializes into Markdown and feeds RAG
+   * chunks). Mirrors `ocr`: the core ships no describer, keeping it dependency-free.
+   */
+  describeImage?: ImageDescriber;
 }
 
 /** Parsed document with multiple synchronised representations. */
@@ -105,6 +114,31 @@ function detectFormat(bytes: Uint8Array): Format {
   if (looksLikeHtml(bytes)) return "html";
   throw new Error(
     "Unrecognised input: expected a PDF (%PDF), an OOXML document (DOCX/XLSX/PPTX zip), or HTML.",
+  );
+}
+
+/**
+ * Caption figures that lack alt text using the supplied describer. Figures that
+ * already carry source alt text (HTML `alt`, OOXML `descr`) are left untouched.
+ * A describer error leaves that figure undescribed (non-fatal). Runs in parallel.
+ */
+async function describeFigures(blocks: Block[], describer: ImageDescriber): Promise<void> {
+  const pending = blocks.filter((b): b is FigureBlock => b.type === "figure" && !b.alt);
+  await Promise.all(
+    pending.map(async (fig) => {
+      try {
+        const caption = await describer.describe({
+          ref: fig.ref,
+          page: fig.page,
+          bbox: fig.bbox,
+          ...(fig.mime ? { mime: fig.mime } : {}),
+          ...(fig.bytes ? { bytes: fig.bytes } : {}),
+        });
+        if (caption) fig.alt = caption.replace(/\s+/g, " ").trim();
+      } catch {
+        // Non-fatal: leave the figure undescribed.
+      }
+    }),
   );
 }
 
@@ -180,6 +214,12 @@ export async function parseDocument(
     pageCount = 1;
   }
 
+  // Optional figure captioning: fill alt text on figures that have none. Mutates
+  // the shared block objects, so Markdown/JSON/chunks (built below) all see it.
+  if (options.describeImage) {
+    await describeFigures(blocks, options.describeImage);
+  }
+
   // Prefer the embedded title; fall back to the first level-1 heading.
   const firstH1 = blocks.find((b) => b.type === "heading" && b.level === 1);
   const resolvedTitle =
@@ -210,5 +250,8 @@ export type {
   ChunkOptions,
   ContentNode,
   DocumentMeta,
+  FigureBlock,
+  FigureImage,
+  ImageDescriber,
   OcrEngine,
 } from "@docmarrow/core";

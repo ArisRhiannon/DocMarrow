@@ -3,8 +3,10 @@ import {
   attr,
   childrenNamed,
   childrenOf,
+  deepAll,
   deepFirst,
   firstChild,
+  mimeFromExt,
   parseXml,
   tagName,
   textOf,
@@ -200,6 +202,79 @@ function tableRows(tbl: XmlNode): string[][] {
 }
 
 // ---------------------------------------------------------------------------
+// Images / figures
+// ---------------------------------------------------------------------------
+
+/** Resolve a relationship id (`r:embed`) to an image ref / mime / bytes. */
+export interface DocxImages {
+  resolve(rId: string): { ref: string; mime?: string; bytes?: Uint8Array } | null;
+}
+
+/** Anchor a relationship target (relative to `word/document.xml`) under `word/`. */
+function normalizeWordPath(target: string): string {
+  let p = target.replace(/^\//, "").replace(/^(\.\.\/)+/, "");
+  if (!p.startsWith("word/")) p = `word/${p}`;
+  return p;
+}
+
+/** Build an rId → image resolver from `document.xml.rels` and the media bytes. */
+export function buildImages(
+  relsXml: string | undefined,
+  media: Map<string, Uint8Array>,
+): DocxImages {
+  const targets = new Map<string, { target: string; external: boolean }>();
+  if (relsXml) {
+    const rels = deepFirst(parseXml(relsXml), "Relationships");
+    for (const rel of rels ? childrenNamed(rels, "Relationship") : []) {
+      const id = attr(rel, "Id");
+      const target = attr(rel, "Target");
+      if (!id || !target) continue;
+      targets.set(id, { target, external: (attr(rel, "TargetMode") ?? "").toLowerCase() === "external" });
+    }
+  }
+  return {
+    resolve(rId) {
+      const t = targets.get(rId);
+      if (!t) return null;
+      if (t.external || /^https?:/i.test(t.target)) {
+        const mime = mimeFromExt(t.target);
+        return { ref: t.target, ...(mime ? { mime } : {}) };
+      }
+      const path = normalizeWordPath(t.target);
+      const bytes = media.get(path);
+      const mime = mimeFromExt(path);
+      return { ref: path, ...(mime ? { mime } : {}), ...(bytes ? { bytes } : {}) };
+    },
+  };
+}
+
+/** Figures (DrawingML pictures) embedded in a paragraph, in document order. */
+function paragraphFigures(p: XmlNode, images: DocxImages): FigureItem[] {
+  const blips = deepAll([p], "a:blip");
+  if (blips.length === 0) return [];
+  const docPrs = deepAll([p], "wp:docPr");
+  const out: FigureItem[] = [];
+  blips.forEach((blip, i) => {
+    const rId = attr(blip, "r:embed") ?? attr(blip, "r:link");
+    if (!rId) return;
+    const img = images.resolve(rId);
+    if (!img) return;
+    const dp = docPrs[i];
+    const alt = dp ? (attr(dp, "descr") ?? attr(dp, "name") ?? "").replace(/\s+/g, " ").trim() : "";
+    out.push({
+      kind: "figure",
+      ref: img.ref,
+      alt,
+      ...(img.mime ? { mime: img.mime } : {}),
+      ...(img.bytes ? { bytes: img.bytes } : {}),
+    });
+  });
+  return out;
+}
+
+type FigureItem = { kind: "figure"; ref: string; alt: string; mime?: string; bytes?: Uint8Array };
+
+// ---------------------------------------------------------------------------
 // Body → intermediate items → blocks
 // ---------------------------------------------------------------------------
 
@@ -209,12 +284,14 @@ type Item =
   | { kind: "quote"; text: string }
   | { kind: "code"; text: string }
   | { kind: "list"; numId: string; ordered: boolean; level: number; text: string }
-  | { kind: "table"; rows: string[][] };
+  | { kind: "table"; rows: string[][] }
+  | FigureItem;
 
 function bodyItems(
   body: XmlNode,
   styles: Map<string, StyleInfo>,
   orderedOf: (numId: string, ilvl: number) => boolean,
+  images: DocxImages,
 ): Item[] {
   const items: Item[] = [];
   for (const node of childrenOf(body)) {
@@ -228,6 +305,8 @@ function bodyItems(
     if (name !== "w:p") continue; // sectPr, bookmarks, etc.
 
     const props = paragraphProps(node);
+    const figures = paragraphFigures(node, images);
+
     if (isListParagraph(props)) {
       const text = plainText(node);
       if (text) {
@@ -239,6 +318,7 @@ function bodyItems(
           text,
         });
       }
+      items.push(...figures);
       continue;
     }
 
@@ -246,13 +326,17 @@ function bodyItems(
     if (kind.type === "code") {
       const text = codeText(node);
       if (text) items.push({ kind: "code", text });
+      items.push(...figures);
       continue;
     }
     const text = plainText(node);
-    if (!text) continue;
-    if (kind.type === "heading") items.push({ kind: "heading", level: kind.level, text });
-    else if (kind.type === "quote") items.push({ kind: "quote", text });
-    else items.push({ kind: "paragraph", text });
+    if (text) {
+      if (kind.type === "heading") items.push({ kind: "heading", level: kind.level, text });
+      else if (kind.type === "quote") items.push({ kind: "quote", text });
+      else items.push({ kind: "paragraph", text });
+    }
+    // Image-only paragraphs (no text) still surface their figures.
+    items.push(...figures);
   }
   return items;
 }
@@ -302,6 +386,21 @@ function foldBlocks(items: Item[]): Block[] {
       continue;
     }
 
+    if (it.kind === "figure") {
+      blocks.push({
+        type: "figure",
+        alt: it.alt,
+        ref: it.ref,
+        ...(it.mime ? { mime: it.mime } : {}),
+        ...(it.bytes ? { bytes: it.bytes } : {}),
+        page: 1,
+        bbox: { ...ZERO_BBOX },
+        confidence: DOCX_CONFIDENCE,
+      });
+      i++;
+      continue;
+    }
+
     if (it.kind === "table") {
       blocks.push({
         type: "table",
@@ -341,18 +440,19 @@ function foldBlocks(items: Item[]): Block[] {
   return blocks;
 }
 
-/** Map a parsed `word/document.xml` (+ styles/numbering) into core blocks. */
+/** Map a parsed `word/document.xml` (+ styles/numbering/images) into core blocks. */
 export function documentToBlocks(
   documentXml: string,
   stylesXml: string | undefined,
   numberingXml: string | undefined,
+  images: DocxImages = { resolve: () => null },
 ): Block[] {
   const document = deepFirst(parseXml(documentXml), "w:document");
   const body = document ? firstChild(document, "w:body") : undefined;
   if (!body) return [];
   const styles = buildStyles(stylesXml);
   const orderedOf = buildNumbering(numberingXml);
-  return foldBlocks(bodyItems(body, styles, orderedOf));
+  return foldBlocks(bodyItems(body, styles, orderedOf, images));
 }
 
 /** Extract the document title from `docProps/core.xml`, if present. */

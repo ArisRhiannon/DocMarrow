@@ -73,6 +73,16 @@ export function deepFirst(nodes: XmlNode[], name: string): XmlNode | undefined {
   return undefined;
 }
 
+/** Collect every element named `name` anywhere in the subtree (pre-order). */
+export function deepAll(nodes: XmlNode[], name: string): XmlNode[] {
+  const out: XmlNode[] = [];
+  for (const n of nodes) {
+    if (tagName(n) === name) out.push(n);
+    out.push(...deepAll(childrenOf(n), name));
+  }
+  return out;
+}
+
 /** Collect all `#text` under a subtree (optionally mapping certain tags). */
 export function collectAllText(node: XmlNode, onTag?: (tag: string) => string | undefined): string {
   const tag = tagName(node);

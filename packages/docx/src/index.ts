@@ -1,5 +1,5 @@
 import type { Block } from "@docmarrow/core";
-import { coreTitle, documentToBlocks } from "./ooxml.js";
+import { buildImages, coreTitle, documentToBlocks } from "./ooxml.js";
 import { readDocxParts } from "./unzip.js";
 
 /** Result of analysing a DOCX document into core blocks. */
@@ -24,7 +24,8 @@ export interface DocxAnalysis {
  */
 export function analyzeDocx(bytes: Uint8Array): DocxAnalysis {
   const parts = readDocxParts(bytes);
-  const blocks = documentToBlocks(parts.document, parts.styles, parts.numbering);
+  const images = buildImages(parts.rels, parts.media);
+  const blocks = documentToBlocks(parts.document, parts.styles, parts.numbering, images);
   const title = coreTitle(parts.core);
 
   const warnings: string[] = [];

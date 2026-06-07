@@ -91,7 +91,9 @@ const chunks = doc.chunks({
 // -> { text, tokens, pages, path, bbox }[]   (`path` is the heading breadcrumb)
 ```
 
-Block types: `heading`, `paragraph`, `list`, `table`, `code`, `quote`.
+Block types: `heading`, `paragraph`, `list`, `table`, `code`, `quote`, `figure`.
+A `figure` carries `alt` (caption), `ref` (image locator) and, when cheap to
+obtain, `mime` + `bytes`; it serializes to Markdown as `![alt](ref)`.
 `bytes` accepts a `Uint8Array`, `ArrayBuffer`, or any `ArrayBufferView`.
 
 ### CLI
@@ -152,6 +154,11 @@ structure-aware **chunker**, so output is uniform across formats. Every block
 carries a `page`, a `bbox` (zero for flow formats) and a heuristic `confidence`
 for citations and traceability.
 
+Across every format, embedded **images/figures** are located and emitted as
+`figure` blocks (rendered `![alt](ref)` in Markdown), so they hold their place
+in reading order instead of vanishing. DocMarrow does not interpret the pixels;
+pass a [`describeImage`](#figures-images--charts) hook to caption them for RAG.
+
 ## Packages
 
 This is a pnpm monorepo. Only the aggregate package is published to npm; the
@@ -211,6 +218,44 @@ one. In the browser the DOM canvas is used and you configure the pdf.js worker.
 > OCR is heavier and slower than text extraction (the tesseract model is ~15 MB
 > and downloaded on first use). Use it only for documents that actually need it.
 
+## Figures (images & charts)
+
+Many documents carry meaning in images — charts, diagrams, screenshots. DocMarrow
+**locates** every embedded figure and emits a `figure` block in reading order, so
+it is never silently dropped:
+
+- **PDF** — image XObjects are found in the content stream with their on-page
+  `bbox`; the `ref` is a stable per-page id (`p2-img1`). The pixels are **not**
+  decoded (that needs a canvas, like OCR), so PDF figures carry no `bytes`.
+- **DOCX / PPTX** — pictures are resolved through relationships to `word/media`
+  / `ppt/media`, so the figure carries the real `mime` + `bytes`, plus any
+  authored alt text (`descr`).
+- **HTML** — `<img>` becomes a figure; a `data:` URI is decoded to `bytes`,
+  a normal `src` is kept as the `ref`.
+
+By default a figure has no description (`alt: ""`) and renders as `![](ref)`.
+Pass a `describeImage` hook — an injectable captioner that mirrors `OcrEngine` —
+to fill it (e.g. with a vision LLM). DocMarrow ships no model, so this stays
+opt-in and dependency-free:
+
+```ts
+const doc = await parseDocument(bytes, {
+  describeImage: {
+    // Called only for figures with no authored alt text. Return "" to skip.
+    describe: async ({ ref, page, mime, bytes }) => {
+      const caption = await myVisionModel(bytes ?? ref); // your call
+      return caption;
+    },
+  },
+});
+// Captions land in `alt`, so they serialize into Markdown (`![caption](ref)`)
+// and feed the RAG chunker — figures become searchable text.
+```
+
+The hook runs over all formats; authored alt text (HTML `alt`, OOXML `descr`) is
+kept and never overwritten, and a describer error leaves that figure undescribed
+(non-fatal).
+
 ## Scope & limitations (honest)
 
 What works today, verified by the test suite and on real generated documents:
@@ -226,6 +271,8 @@ What works today, verified by the test suite and on real generated documents:
   (nested lists) + slide tables, in presentation order.
 - **HTML** → headings, paragraphs, nested lists, tables, code (`pre`) and quotes.
 - **Scanned PDFs** → optional OCR via `@docmarrow/ocr` (see above).
+- **Figures** → embedded images located across all formats as `figure` blocks,
+  with an optional `describeImage` hook for captioning (see above).
 - Document `meta` with `warnings` (e.g. a page with no extractable text).
 - Pluggable token counter for chunking; ESM + CJS builds; strict types; Node ≥ 20;
   runs in the browser.
@@ -236,11 +283,17 @@ Known limitations (deliberately stated):
   pages yield no text and are flagged in `meta.warnings` (`meta.hasText` is
   `false`). Add `@docmarrow/ocr` to recognize them (see above).
 - **XLSX**: cell values are read as stored (formula results, not recomputed);
-  number/date formatting is not applied; charts and images are ignored.
-- **PPTX**: title-vs-body is inferred from placeholders; speaker notes, charts
-  and images are not extracted.
+  number/date formatting is not applied; charts and embedded images are ignored.
+- **PPTX**: title-vs-body is inferred from placeholders; speaker notes and
+  charts are not extracted (pictures are — see **Figures**).
 - **HTML**: a list block has a single `ordered` flag, so an `<ol>` nested inside
   a `<ul>` (or vice-versa) renders with the outer list's style.
+- **Figures**: DocMarrow **locates** figures but does not interpret them — there
+  is no built-in captioner; `alt` stays empty unless the source has alt text or
+  you pass `describeImage`. PDF image XObjects are located (bbox + `ref`) but the
+  pixels are **not** decoded, so PDF figures carry no `bytes` (rasterizing needs
+  a canvas, like OCR). Vector art drawn directly (not as an image), inline `<svg>`
+  and XLSX images are not captured.
 - **PDF tables**: ruled tables use the real border lines (multi-word cells kept
   intact); merged/spanning cells are approximated and rotated tables are not
   supported. Borderless tables fall back to whitespace-alignment heuristics.
