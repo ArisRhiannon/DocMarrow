@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/ArisRhiannon/DocMarrow/main/assets/banner.png" alt="DocMarrow — Pure TypeScript document parser → Markdown, JSON and RAG chunks" width="100%" />
+</p>
+
 # DocMarrow
 
 **Pure TypeScript document parser for PDF → Markdown, JSON and RAG chunks.**
