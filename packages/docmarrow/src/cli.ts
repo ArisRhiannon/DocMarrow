@@ -43,7 +43,7 @@ async function main(): Promise<void> {
   });
 
   if (values.version) {
-    process.stdout.write("1.0.2\n");
+    process.stdout.write("1.1.0\n");
     return;
   }
   if (values.help || positionals.length === 0) {

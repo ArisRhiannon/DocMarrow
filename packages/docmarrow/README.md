@@ -3,6 +3,7 @@
 **Pure TypeScript document parser for PDF → Markdown, JSON and RAG chunks.**
 
 [![npm version](https://img.shields.io/npm/v/docmarrow?color=cb3837&logo=npm)](https://www.npmjs.com/package/docmarrow)
+[![CI](https://github.com/ArisRhiannon/DocMarrow/actions/workflows/ci.yml/badge.svg)](https://github.com/ArisRhiannon/DocMarrow/actions/workflows/ci.yml)
 [![npm downloads](https://img.shields.io/npm/dm/docmarrow?color=cb3837)](https://www.npmjs.com/package/docmarrow)
 [![types: TypeScript](https://img.shields.io/npm/types/docmarrow?logo=typescript)](https://www.npmjs.com/package/docmarrow)
 [![license](https://img.shields.io/npm/l/docmarrow)](https://github.com/ArisRhiannon/DocMarrow/blob/main/LICENSE)
