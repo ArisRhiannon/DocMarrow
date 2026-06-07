@@ -1,0 +1,36 @@
+{
+  "name": "@docmarrow/docx",
+  "version": "1.0.0",
+  "description": "DOCX (OOXML) backend for docmarrow: structure-preserving extraction to core blocks.",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@docmarrow/core": "workspace:*",
+    "fast-xml-parser": "^5.8.0",
+    "fflate": "^0.8.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ArisRhiannon/DocMarrow.git",
+    "directory": "packages/docx"
+  },
+  "private": true
+}

@@ -2,6 +2,7 @@ import { boundingBox, groupLines, type Line, median } from "./layout.js";
 import { dropRunningHeadFoot, segmentPage } from "./reading-order.js";
 import { structureLines } from "./structure.js";
 import { detectTables, type DetectedTable } from "./tables.js";
+import { detectRuledTables } from "./ruled-tables.js";
 import type { AnalysisResult, AnalyzeOptions, Block, PageInput } from "./types.js";
 
 /**
@@ -22,6 +23,17 @@ export function analyze(pages: PageInput[], options: AnalyzeOptions = {}): Analy
       : groupLines(p.items).sort((a, b) => a.y - b.y || a.x - b.x),
   );
 
+  // Surface pages that yielded no text — almost always scanned/image-only pages
+  // that would require OCR (which this pipeline deliberately does not do).
+  const warnings: string[] = [];
+  perPageLines.forEach((lines, i) => {
+    if (lines.length === 0) {
+      warnings.push(
+        `Page ${i + 1} has no extractable text (likely scanned or image-only; OCR is not performed).`,
+      );
+    }
+  });
+
   const filtered = dropHF
     ? dropRunningHeadFoot(perPageLines.map((lines, i) => ({ lines, height: pages[i]!.height })))
     : perPageLines;
@@ -36,8 +48,18 @@ export function analyze(pages: PageInput[], options: AnalyzeOptions = {}): Analy
     const tableStarts = new Map<Line, DetectedTable>();
     const consumed = new Set<Line>();
     if (tablesEnabled) {
-      const { tables } = detectTables(ordered);
-      for (const t of tables) {
+      // Prefer ruled (vector-line) tables; run the geometric detector only on
+      // the lines the ruled grids did not already claim, so both can coexist.
+      const pageRules = pages[pi]!.rules ?? [];
+      const ruled = pageRules.length
+        ? detectRuledTables(ordered, pageRules)
+        : { tables: [] as DetectedTable[], consumed: new Set<Line>() };
+      const remaining = ruled.consumed.size
+        ? ordered.filter((l) => !ruled.consumed.has(l))
+        : ordered;
+      const geom = detectTables(remaining);
+      for (const t of [...ruled.tables, ...geom.tables]) {
+        if (!t.lines.length) continue;
         tableStarts.set(t.lines[0]!, t);
         for (const l of t.lines) consumed.add(l);
       }
@@ -72,5 +94,5 @@ export function analyze(pages: PageInput[], options: AnalyzeOptions = {}): Analy
     return blocks;
   });
 
-  return { blocks: pageBlocks.flat(), pages: pageBlocks };
+  return { blocks: pageBlocks.flat(), pages: pageBlocks, warnings };
 }

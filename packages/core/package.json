@@ -1,7 +1,7 @@
 {
-  "name": "@docparse/core",
-  "version": "0.1.0",
-  "description": "Core layout analysis, structure detection, serializers and RAG chunker for docparse.",
+  "name": "@docmarrow/core",
+  "version": "1.0.0",
+  "description": "Core layout analysis, structure detection, serializers and RAG chunker for docmarrow.",
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -24,7 +24,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ArisRhiannon/docparse.git",
+    "url": "https://github.com/ArisRhiannon/DocMarrow.git",
     "directory": "packages/core"
   },
   "private": true

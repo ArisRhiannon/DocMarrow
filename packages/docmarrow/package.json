@@ -1,7 +1,7 @@
 {
-  "name": "docparse-ts",
-  "version": "0.1.0",
-  "description": "Layout-aware PDF → Markdown + JSON + RAG chunks. TypeScript-native, no Python, no servers.",
+  "name": "docmarrow",
+  "version": "1.0.0",
+  "description": "Pure TypeScript document parser for PDF → Markdown, JSON and RAG chunks.",
   "keywords": [
     "pdf",
     "markdown",
@@ -29,7 +29,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "docparse-ts": "./dist/cli.js"
+    "docmarrow": "./dist/cli.js"
   },
   "files": ["dist"],
   "sideEffects": false,
@@ -41,18 +41,21 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "fast-xml-parser": "^5.8.0",
+    "fflate": "^0.8.3",
     "pdfjs-dist": "^4.10.38"
   },
   "devDependencies": {
-    "@docparse/core": "workspace:*",
-    "@docparse/pdf": "workspace:*"
+    "@docmarrow/core": "workspace:*",
+    "@docmarrow/docx": "workspace:*",
+    "@docmarrow/pdf": "workspace:*"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ArisRhiannon/docparse.git"
+    "url": "git+https://github.com/ArisRhiannon/DocMarrow.git"
   },
-  "homepage": "https://github.com/ArisRhiannon/docparse#readme",
+  "homepage": "https://github.com/ArisRhiannon/DocMarrow#readme",
   "bugs": {
-    "url": "https://github.com/ArisRhiannon/docparse/issues"
+    "url": "https://github.com/ArisRhiannon/DocMarrow/issues"
   }
 }

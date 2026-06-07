@@ -44,10 +44,44 @@ export function structureLines(
   // gap signals a paragraph break. This adapts to single/loose line spacing
   // instead of relying on a fixed font-size fraction.
   const pitch = medianPitch(lines) || bodyFont * 1.4;
+  // A blockquote candidate: italic prose, inset from the body left margin, that
+  // is neither a list item nor a heading. Conservative by design — geometric
+  // quote detection in PDFs is noisy, so both signals must agree.
+  const isQuoteLine = (l: Line): boolean =>
+    l.italic &&
+    l.x - leftMargin > indentUnit * 0.8 &&
+    listMarker(l.text) === null &&
+    headingLevel(l, bodyFont) === null;
   let i = 0;
 
   while (i < lines.length) {
     const line = lines[i]!;
+
+    // Code: a run of monospace lines. Unlike prose, line breaks are preserved
+    // and approximate leading indentation is reconstructed from x offsets.
+    if (line.mono) {
+      const run: Line[] = [line];
+      i++;
+      while (i < lines.length && lines[i]!.mono) {
+        const prev = run[run.length - 1]!;
+        const next = lines[i]!;
+        const delta = next.y - prev.y;
+        if (delta <= 0 || delta > pitch * 2.2) break;
+        run.push(next);
+        i++;
+      }
+      const minX = Math.min(...run.map((l) => l.x));
+      const indentOf = (l: Line): string =>
+        " ".repeat(Math.max(0, Math.round((l.x - minX) / (bodyFont * 0.5))));
+      blocks.push({
+        type: "code",
+        text: run.map((l) => indentOf(l) + l.text).join("\n"),
+        page,
+        bbox: boundingBox(run),
+        confidence: 0.6,
+      });
+      continue;
+    }
 
     const level = headingLevel(line, bodyFont);
     if (level !== null && listMarker(line.text) === null) {
@@ -88,6 +122,28 @@ export function structureLines(
       continue;
     }
 
+    // Block quote: a run of italic, inset lines, merged like a paragraph.
+    if (isQuoteLine(line)) {
+      const run: Line[] = [line];
+      i++;
+      while (i < lines.length) {
+        const prev = run[run.length - 1]!;
+        const next = lines[i]!;
+        const delta = next.y - prev.y;
+        if (!isQuoteLine(next) || delta <= 0 || delta > pitch * 1.6) break;
+        run.push(next);
+        i++;
+      }
+      blocks.push({
+        type: "quote",
+        text: joinParagraph(run),
+        page,
+        bbox: boundingBox(run),
+        confidence: 0.55,
+      });
+      continue;
+    }
+
     // Paragraph: merge following body lines until a gap or a structural break.
     const para: Line[] = [line];
     i++;
@@ -96,7 +152,10 @@ export function structureLines(
       const next = lines[i]!;
       const delta = next.y - prev.y;
       const isStructural =
-        headingLevel(next, bodyFont) !== null || listMarker(next.text) !== null;
+        headingLevel(next, bodyFont) !== null ||
+        listMarker(next.text) !== null ||
+        next.mono ||
+        isQuoteLine(next);
       // delta <= 0 means we moved up the page (new column) — always break.
       if (isStructural || delta <= 0 || delta > pitch * 1.4) break;
       para.push(next);

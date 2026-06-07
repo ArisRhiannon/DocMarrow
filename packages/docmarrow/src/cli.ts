@@ -3,10 +3,10 @@ import { readFile, writeFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import { parseDocument } from "./index.js";
 
-const HELP = `docparse-ts — layout-aware PDF → Markdown/JSON/chunks
+const HELP = `docmarrow — layout-aware PDF/DOCX → Markdown/JSON/chunks
 
 Usage:
-  docparse-ts <file.pdf> [options]
+  docmarrow <file.pdf|file.docx> [options]
 
 Options:
   -o, --out <file>       Write Markdown to <file> (default: stdout)
@@ -14,14 +14,15 @@ Options:
       --chunks <file>    Write RAG chunks (JSON) to <file>
       --max-tokens <n>   Max tokens per chunk (default: 512)
       --overlap <n>      Token overlap between chunks (default: 64)
-      --no-tables        Disable table detection
-      --no-reading-order Disable multi-column reading-order reconstruction
-      --keep-headers     Keep running headers/footers and page numbers
+      --no-tables        Disable table detection (PDF only)
+      --no-reading-order Disable multi-column reading-order reconstruction (PDF only)
+      --keep-headers     Keep running headers/footers and page numbers (PDF only)
   -h, --help             Show this help
   -v, --version          Show version
 
 Example:
-  docparse-ts report.pdf -o report.md --json report.json
+  docmarrow report.pdf -o report.md --json report.json
+  docmarrow notes.docx -o notes.md
 `;
 
 async function main(): Promise<void> {
@@ -42,7 +43,7 @@ async function main(): Promise<void> {
   });
 
   if (values.version) {
-    process.stdout.write("0.1.0\n");
+    process.stdout.write("1.0.0\n");
     return;
   }
   if (values.help || positionals.length === 0) {
@@ -83,6 +84,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err: unknown) => {
-  process.stderr.write(`docparse-ts: ${err instanceof Error ? err.message : String(err)}\n`);
+  process.stderr.write(`docmarrow: ${err instanceof Error ? err.message : String(err)}\n`);
   process.exitCode = 1;
 });

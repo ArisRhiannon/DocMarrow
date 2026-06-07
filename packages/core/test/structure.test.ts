@@ -75,3 +75,51 @@ describe("structureLines paragraphs", () => {
     );
   });
 });
+
+describe("structureLines code blocks", () => {
+  it("groups consecutive monospace lines into a code block, preserving line breaks", () => {
+    const out = blocks([
+      item("function add(a, b) {", 50, 0, { mono: true, width: 160 }),
+      item("return a + b;", 66, 16, { mono: true, width: 110 }),
+      item("}", 50, 32, { mono: true, width: 10 }),
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.type).toBe("code");
+    const code = out[0] as Extract<Block, { type: "code" }>;
+    // Lines are NOT merged into a paragraph; newlines are preserved.
+    expect(code.text.split("\n")).toHaveLength(3);
+    expect(code.text).toContain("function add(a, b) {");
+    expect(code.text).toContain("return a + b;");
+  });
+
+  it("does not treat ordinary prose as code", () => {
+    const out = blocks([
+      item("This is a normal sentence of prose text.", 50, 0, { width: 300 }),
+    ]);
+    expect(out[0]!.type).toBe("paragraph");
+  });
+});
+
+describe("structureLines block quotes", () => {
+  it("detects an italic, indented run as a quote", () => {
+    const out = blocks([
+      item("Normal body paragraph at the margin here.", 50, 0, { width: 320 }),
+      item("The only thing we have to fear is fear itself,", 90, 40, {
+        italic: true,
+        width: 280,
+      }),
+      item("and there is nothing to add to that.", 90, 56, { italic: true, width: 240 }),
+    ]);
+    const quote = out.find((b) => b.type === "quote") as Extract<Block, { type: "quote" }> | undefined;
+    expect(quote).toBeDefined();
+    expect(quote!.text).toContain("fear itself");
+    expect(quote!.text).toContain("nothing to add");
+  });
+
+  it("does not treat an upright indented line as a quote", () => {
+    const out = blocks([
+      item("A normal indented first line of a paragraph,", 90, 0, { width: 280 }),
+    ]);
+    expect(out.some((b) => b.type === "quote")).toBe(false);
+  });
+});

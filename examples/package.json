@@ -1,0 +1,20 @@
+{
+  "name": "@docmarrow/examples",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Runnable Node examples for docmarrow.",
+  "scripts": {
+    "pdf": "node parse-pdf.mjs",
+    "docx": "node parse-docx.mjs",
+    "chunks": "node chunk-and-tokenize.mjs",
+    "all": "node parse-pdf.mjs && node parse-docx.mjs && node chunk-and-tokenize.mjs"
+  },
+  "dependencies": {
+    "docmarrow": "workspace:*"
+  },
+  "devDependencies": {
+    "fflate": "^0.8.3",
+    "pdf-lib": "^1.17.1"
+  }
+}

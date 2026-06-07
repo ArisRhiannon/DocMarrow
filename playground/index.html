@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>docmarrow · in-browser playground</title>
+  </head>
+  <body>
+    <header>
+      <h1>docmarrow</h1>
+      <p class="tag">Layout-aware PDF &amp; DOCX → Markdown / JSON / RAG chunks — parsed
+        <strong>entirely in your browser</strong>. Nothing is uploaded.</p>
+    </header>
+
+    <main>
+      <section class="controls">
+        <div id="drop" class="drop" tabindex="0">
+          <input id="file" type="file" accept=".pdf,.docx" hidden />
+          <p>Drop a <code>.pdf</code> or <code>.docx</code> here, or <button id="pick" type="button">choose a file</button></p>
+          <p class="or">— or —</p>
+          <button id="sample-pdf" type="button">Load sample PDF</button>
+          <button id="sample-docx" type="button">Load sample DOCX</button>
+        </div>
+        <p id="status" class="status" role="status"></p>
+        <dl id="meta" class="meta" hidden></dl>
+      </section>
+
+      <section class="output">
+        <nav class="tabs" role="tablist">
+          <button class="tab" data-view="markdown" aria-selected="true">Markdown</button>
+          <button class="tab" data-view="json">JSON</button>
+          <button class="tab" data-view="chunks">Chunks</button>
+        </nav>
+        <pre id="out"><span class="hint">Output appears here.</span></pre>
+      </section>
+    </main>
+
+    <footer>
+      <span>Pure JS/WASM · AGPL-3.0-or-later</span>
+      <a href="https://github.com/ArisRhiannon/DocMarrow">GitHub</a>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

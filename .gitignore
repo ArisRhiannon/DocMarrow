@@ -6,3 +6,6 @@ coverage/
 *.log
 .turbo/
 packages/*/LICENSE
+# tesseract.js downloads its language model to the cwd on first use
+*.traineddata
+*.traineddata.gz

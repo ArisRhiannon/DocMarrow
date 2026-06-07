@@ -1,5 +1,5 @@
 /**
- * Core data model for docparse.
+ * Core data model for docmarrow.
  *
  * Coordinate convention (used everywhere downstream of a backend):
  *   - Origin is the TOP-LEFT of the page.
@@ -27,6 +27,20 @@ export interface TextItem {
   bold?: boolean;
   /** True when the backend could determine the run is italic. */
   italic?: boolean;
+  /** True when the backend could determine the run uses a monospace font. */
+  mono?: boolean;
+}
+
+/**
+ * An axis-aligned vector rule (table border line) extracted from a page's
+ * graphics, in the top-left point convention. Horizontal rules have
+ * `y0 === y1`; vertical rules have `x0 === x1`.
+ */
+export interface Rule {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
 }
 
 /** One page of extracted content, as produced by a backend. */
@@ -36,6 +50,11 @@ export interface PageInput {
   /** Page height in points. */
   height: number;
   items: TextItem[];
+  /**
+   * Vector rules (table border lines) for the page, if the backend extracts
+   * them. Used to reconstruct ruled tables; absent for flow formats.
+   */
+  rules?: Rule[];
 }
 
 /** Axis-aligned bounding box, top-left origin. */
@@ -104,6 +123,22 @@ export type Block =
   | CodeBlock
   | QuoteBlock;
 
+/**
+ * A pluggable OCR engine. Implementations live in optional packages (e.g.
+ * `@docmarrow/ocr`, which wraps tesseract.js) so the core stays pure JS with no
+ * heavy/native dependencies. When supplied to `parseDocument`, PDF pages that
+ * yield no extractable text (scanned/image-only) are rasterized and OCR'd, and
+ * the recognized words are fed into the normal layout pipeline.
+ */
+export interface OcrEngine {
+  /**
+   * OCR the given 1-based pages of a PDF, returning positioned text items in
+   * the top-left point convention, keyed by page number. Pages omitted from the
+   * result are left untouched.
+   */
+  ocrPages(pdf: Uint8Array, pageNumbers: number[]): Promise<Map<number, TextItem[]>>;
+}
+
 /** Options controlling the analysis pipeline. */
 export interface AnalyzeOptions {
   /** Reconstruct multi-column reading order. Default: true. */
@@ -131,6 +166,12 @@ export interface ChunkOptions {
   maxTokens?: number;
   /** Token overlap carried between consecutive chunks. Default: 64. */
   overlap?: number;
+  /**
+   * Token counter used for boundaries and reported counts. Defaults to a
+   * dependency-free word heuristic ({@link Chunk.tokens}); pass a real model
+   * tokenizer (e.g. `js-tiktoken`'s `encode(t).length`) for exact counts.
+   */
+  countTokens?: (text: string) => number;
 }
 
 /** Result of analysing a document. */
@@ -138,4 +179,26 @@ export interface AnalysisResult {
   blocks: Block[];
   /** Blocks grouped by 1-based page index. */
   pages: Block[][];
+  /**
+   * Non-fatal warnings raised during analysis (e.g. a page with no extractable
+   * text, which usually means it is scanned/image-only and would need OCR).
+   */
+  warnings: string[];
+}
+
+/** High-level metadata about a parsed document. */
+export interface DocumentMeta {
+  /** Source format the bytes were parsed as. */
+  format: "pdf" | "docx";
+  /** Number of pages (PDF) or `1` for flow formats like DOCX. */
+  pageCount: number;
+  /**
+   * True when at least one page yielded extractable text. `false` is the
+   * signal for a fully scanned/image-only PDF (no OCR is performed).
+   */
+  hasText: boolean;
+  /** Document title, from embedded metadata when available. */
+  title?: string;
+  /** Non-fatal warnings surfaced during parsing. */
+  warnings: string[];
 }
